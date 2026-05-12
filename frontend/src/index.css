@@ -1,0 +1,301 @@
+@import "tailwindcss";
+
+/* ========== Custom Theme Tokens ========== */
+@theme {
+  --color-void: #05050f;
+  --color-deep: #0a0a1a;
+  --color-surface: #111128;
+  --color-card: #161638;
+  --color-card-hover: #1c1c45;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-glow: rgba(139, 92, 246, 0.3);
+  --color-neon-purple: #8b5cf6;
+  --color-neon-blue: #3b82f6;
+  --color-neon-cyan: #06b6d4;
+  --color-neon-pink: #ec4899;
+  --color-neon-red: #ef4444;
+  --color-neon-green: #22c55e;
+  --color-neon-amber: #f59e0b;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #475569;
+  --color-glass: rgba(17, 17, 40, 0.6);
+  --color-glass-hover: rgba(28, 28, 69, 0.7);
+  --font-display: 'Outfit', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+/* ========== Base Styles ========== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-void);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========== Glassmorphism Cards ========== */
+.glass {
+  background: var(--color-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+}
+
+.glass-hover:hover {
+  background: var(--color-glass-hover);
+  border-color: var(--color-border-glow);
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.1);
+}
+
+/* ========== Neon Glow Effects ========== */
+.glow-purple {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 60px rgba(139, 92, 246, 0.1);
+}
+
+.glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3), 0 0 60px rgba(239, 68, 68, 0.1);
+}
+
+.glow-green {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3), 0 0 60px rgba(34, 197, 94, 0.1);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.3), 0 0 60px rgba(6, 182, 212, 0.1);
+}
+
+.text-glow-purple {
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+}
+
+.text-glow-red {
+  text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+}
+
+/* ========== Animated Background ========== */
+.bg-stars {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-stars::before,
+.bg-stars::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: white;
+  box-shadow:
+    25vw 10vh 0 0 rgba(255,255,255,.3),
+    50vw 20vh 0 0 rgba(255,255,255,.2),
+    75vw 30vh 0 0 rgba(255,255,255,.4),
+    10vw 50vh 0 0 rgba(255,255,255,.2),
+    60vw 60vh 0 0 rgba(255,255,255,.3),
+    85vw 40vh 0 0 rgba(255,255,255,.15),
+    30vw 80vh 0 0 rgba(255,255,255,.25),
+    70vw 75vh 0 0 rgba(255,255,255,.2),
+    15vw 35vh 0 0 rgba(255,255,255,.35),
+    90vw 85vh 0 0 rgba(255,255,255,.15),
+    40vw 15vh 0 0 rgba(255,255,255,.3),
+    55vw 90vh 0 0 rgba(255,255,255,.2),
+    20vw 70vh 0 0 rgba(255,255,255,.25),
+    80vw 55vh 0 0 rgba(255,255,255,.3),
+    45vw 45vh 0 0 rgba(255,255,255,.15);
+  animation: twinkle 4s ease-in-out infinite alternate;
+}
+
+.bg-stars::after {
+  animation-delay: 2s;
+  box-shadow:
+    35vw 15vh 0 0 rgba(255,255,255,.2),
+    65vw 25vh 0 0 rgba(255,255,255,.3),
+    5vw 45vh 0 0 rgba(255,255,255,.25),
+    95vw 65vh 0 0 rgba(255,255,255,.15),
+    50vw 35vh 0 0 rgba(255,255,255,.2),
+    75vw 80vh 0 0 rgba(255,255,255,.3),
+    20vw 55vh 0 0 rgba(255,255,255,.2),
+    88vw 10vh 0 0 rgba(255,255,255,.35);
+}
+
+@keyframes twinkle {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+/* ========== Nebula Gradient Background ========== */
+.bg-nebula {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(139, 92, 246, 0.08), transparent),
+    radial-gradient(ellipse 50% 50% at 80% 20%, rgba(6, 182, 212, 0.06), transparent),
+    radial-gradient(ellipse 70% 30% at 50% 50%, rgba(236, 72, 153, 0.04), transparent);
+}
+
+/* ========== Button Styles ========== */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  background: linear-gradient(135deg, var(--color-neon-purple), var(--color-neon-blue));
+  color: white;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 48px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  background: linear-gradient(135deg, var(--color-neon-red), #b91c1c);
+  color: white;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 48px;
+}
+
+.btn-danger:hover {
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.4);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 48px;
+}
+
+.btn-ghost:hover {
+  background: var(--color-glass);
+  border-color: var(--color-border-glow);
+  color: var(--color-text-primary);
+}
+
+/* ========== Input Styles ========== */
+.input-field {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
+  min-height: 48px;
+}
+
+.input-field:focus {
+  border-color: var(--color-neon-purple);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+.input-field::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* ========== Scrollbar ========== */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border-radius: 3px;
+}
+
+/* ========== Timer Ring Animation ========== */
+@keyframes countdown-ring {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 283; }
+}
+
+/* ========== Pulse Animation ========== */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ========== Skull / Dead Overlay ========== */
+.dead-overlay {
+  position: relative;
+}
+.dead-overlay::after {
+  content: '💀';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: inherit;
+}
