@@ -16,6 +16,7 @@ module.exports = {
 
   // Player roles
   ROLES: {
+    GOD: 'god',           // Host/moderator — not a player
     CIVILIAN: 'civilian',
     IMPOSTOR: 'impostor',
     DOCTOR: 'doctor',

@@ -47,7 +47,16 @@ function reducer(state, action) {
     case 'SET_PLAYERS':
       return { ...state, players: action.payload };
     case 'SET_PHASE':
-      return { ...state, phase: action.payload.phase, ...action.payload };
+      // Clear stale data from previous phase on every transition
+      return {
+        ...state,
+        voteResult: null,
+        voteUpdate: null,
+        votingDeadline: null,
+        discussionDeadline: null,
+        phase: action.payload.phase,
+        ...action.payload
+      };
     case 'SET_ROLE':
       return { ...state, myRole: action.payload };
     case 'SET_PIN':

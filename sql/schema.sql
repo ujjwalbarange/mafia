@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS players (
   session_token CHAR(36) NOT NULL,               -- for reconnection
   display_name VARCHAR(30) NOT NULL,
   avatar_index INT NOT NULL DEFAULT 0,           -- avatar selection
-  role ENUM('civilian','impostor','doctor','police') DEFAULT NULL,
+  role ENUM('god','civilian','impostor','doctor','police') DEFAULT NULL,
   is_alive TINYINT(1) NOT NULL DEFAULT 1,
   is_host TINYINT(1) NOT NULL DEFAULT 0,
   is_ready TINYINT(1) NOT NULL DEFAULT 0,

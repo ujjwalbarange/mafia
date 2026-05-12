@@ -15,9 +15,11 @@ export default function VotingPhase() {
   const [hasVoted, setHasVoted] = useState(false);
   const [showResult, setShowResult] = useState(false);
 
-  const alivePlayers = state.players.filter(p => p.isAlive);
+  // Exclude God (host) from votable players
+  const alivePlayers = state.players.filter(p => p.isAlive && !p.isHost);
   const me = state.players.find(p => p.id === state.playerId);
   const isDead = !me?.isAlive;
+  const isGod = state.isHost;
 
   // Show vote result when received
   useEffect(() => {
@@ -130,15 +132,22 @@ export default function VotingPhase() {
         </div>
       )}
 
+      {/* God (host) notice — moderator cannot vote */}
+      {isGod && (
+        <div className="glass p-3 text-center mb-4 text-sm text-neon-amber">
+          👁 You are God — you observe the vote but cannot participate.
+        </div>
+      )}
+
       {/* Dead player notice */}
-      {isDead && (
+      {isDead && !isGod && (
         <div className="glass p-3 text-center mb-4 text-sm text-neon-amber">
           👻 You're dead — your vote won't count, but you can still participate!
         </div>
       )}
 
-      {/* Player vote grid */}
-      {!hasVoted ? (
+      {/* Player vote grid — only shown for non-God players */}
+      {!isGod && !hasVoted ? (
         <>
           <div className="grid grid-cols-2 gap-3 flex-1">
             {alivePlayers.filter(p => p.id !== state.playerId).map(player => (
@@ -170,13 +179,26 @@ export default function VotingPhase() {
             </button>
           </div>
         </>
-      ) : (
+      ) : !isGod && hasVoted ? (
         <div className="flex-1 flex flex-col items-center justify-center">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
             <p className="text-5xl mb-4">✅</p>
             <h3 className="font-display text-xl font-semibold">Vote Locked</h3>
             <p className="text-text-muted text-sm mt-2">Waiting for other players...</p>
           </motion.div>
+        </div>
+      ) : (
+        /* God sees the player status grid as observer */
+        <div className="flex-1">
+          <h3 className="font-display font-semibold text-sm text-text-muted uppercase tracking-wider mb-3">Players Voting</h3>
+          <div className="grid grid-cols-3 gap-3">
+            {alivePlayers.map(player => (
+              <div key={player.id} className="glass p-3 flex flex-col items-center gap-2">
+                <PlayerAvatar avatarIndex={player.avatarIndex} size="sm" showDead={false} />
+                <p className="text-xs font-medium truncate w-full text-center">{player.displayName}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

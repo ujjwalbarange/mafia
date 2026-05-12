@@ -154,7 +154,8 @@ function getPlayerView(roomId, playerId) {
 
 /**
  * Assign roles to players
- * Host manually assigns roles, but this validates the assignment
+ * Host (God) cannot be assigned a role — they are the moderator.
+ * Validates that assignments only target non-host players.
  */
 function validateRoleAssignment(roomId, assignments) {
   const state = getGameState(roomId);
@@ -163,10 +164,17 @@ function validateRoleAssignment(roomId, assignments) {
   const players = Array.from(state.players.values());
   const playerIds = players.map(p => p.id);
 
-  // Check all assigned player IDs exist
+  // Find the host (God)
+  const host = players.find(p => p.isHost);
+
+  // Check all assigned player IDs exist and none is the host
   for (const [playerId] of Object.entries(assignments)) {
     if (!playerIds.includes(playerId)) {
       return { valid: false, error: `Player ${playerId} not in room` };
+    }
+    // God cannot be assigned a player role
+    if (host && playerId === host.id) {
+      return { valid: false, error: 'God (host) cannot be assigned a player role' };
     }
   }
 
@@ -210,10 +218,18 @@ async function applyRoleAssignment(roomId, assignments) {
   const state = getGameState(roomId);
   if (!state) return false;
 
-  // Apply to in-memory state
+  // Auto-assign the host as God (moderator)
+  for (const player of state.players.values()) {
+    if (player.isHost) {
+      player.role = ROLES.GOD;
+      await PlayerModel.update(player.id, { role: ROLES.GOD });
+    }
+  }
+
+  // Apply player role assignments (non-host only)
   for (const [playerId, role] of Object.entries(assignments)) {
     const player = state.players.get(playerId);
-    if (player) {
+    if (player && !player.isHost) {
       player.role = role;
       // Persist to DB
       await PlayerModel.update(playerId, { role });
@@ -441,6 +457,19 @@ async function castVote(roomId, voterId, targetId) {
   const voter = state.players.get(voterId);
   if (!voter) return { success: false, error: 'Player not found' };
 
+  // God (host) cannot vote
+  if (voter.isHost || voter.role === ROLES.GOD) {
+    return { success: false, error: 'God (moderator) cannot vote' };
+  }
+
+  // Prevent voting for God
+  if (targetId) {
+    const target = state.players.get(targetId);
+    if (target && (target.isHost || target.role === ROLES.GOD)) {
+      return { success: false, error: 'Cannot vote for God (moderator)' };
+    }
+  }
+
   // Ghost votes don't count but are allowed
   const isGhost = !voter.isAlive;
 
@@ -471,13 +500,14 @@ async function resolveVoting(roomId) {
   const state = getGameState(roomId);
   if (!state) return { success: false, error: 'Room not found' };
 
-  // Count only alive player votes
+  // Count only alive non-God player votes
   const tally = new Map();
   let skipCount = 0;
 
   for (const [voterId, targetId] of state.votes.entries()) {
     const voter = state.players.get(voterId);
     if (!voter || !voter.isAlive) continue; // Ghost votes don't count
+    if (voter.isHost || voter.role === ROLES.GOD) continue; // God doesn't vote
 
     if (!targetId) {
       skipCount++;
@@ -575,7 +605,8 @@ function checkWinCondition(roomId) {
   const state = getGameState(roomId);
   if (!state) return { gameOver: false };
 
-  const alivePlayers = Array.from(state.players.values()).filter(p => p.isAlive);
+  // Exclude God (host) from win condition calculations
+  const alivePlayers = Array.from(state.players.values()).filter(p => p.isAlive && p.role !== ROLES.GOD);
   const aliveImpostors = alivePlayers.filter(p => p.role === ROLES.IMPOSTOR);
   const aliveCivilians = alivePlayers.filter(p => p.role !== ROLES.IMPOSTOR);
 

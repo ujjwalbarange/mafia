@@ -8,6 +8,7 @@ import { useGame } from '../context/GameContext';
 import PlayerAvatar from '../components/ui/PlayerAvatar';
 
 const ROLE_LABELS = {
+  god: { label: 'God', emoji: '👁', color: 'text-neon-amber' },
   civilian: { label: 'Civilian', emoji: '👤', color: 'text-text-secondary' },
   impostor: { label: 'Impostor', emoji: '🐺', color: 'text-neon-red' },
   doctor: { label: 'Doctor', emoji: '🏥', color: 'text-neon-green' },
@@ -49,22 +50,21 @@ export default function LobbyPage() {
     setRoleAssignments(prev => ({ ...prev, [playerId]: role }));
   };
 
+  // Non-host players only (host is God, not a player)
+  const nonHostPlayers = state.players.filter(p => !p.isHost);
+
   const startGame = async () => {
     setError('');
-    // Ensure all players have roles
-    const unassigned = state.players.filter(p => !roleAssignments[p.id]);
+    // Ensure all non-host players have roles assigned
+    const unassigned = nonHostPlayers.filter(p => !roleAssignments[p.id]);
+    const updated = { ...roleAssignments };
     if (unassigned.length > 0) {
       // Auto-assign remaining as civilian
-      const updated = { ...roleAssignments };
       unassigned.forEach(p => { updated[p.id] = 'civilian'; });
       setRoleAssignments(updated);
-
-      const res = await emit('game:assign-roles', { assignments: updated });
-      if (!res?.success) return setError(res?.error || 'Failed to assign roles');
-    } else {
-      const res = await emit('game:assign-roles', { assignments: roleAssignments });
-      if (!res?.success) return setError(res?.error || 'Failed to assign roles');
     }
+    const res = await emit('game:assign-roles', { assignments: updated });
+    if (!res?.success) return setError(res?.error || 'Failed to assign roles');
   };
 
   return (
@@ -155,9 +155,9 @@ export default function LobbyPage() {
       <div className="flex-1">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display font-semibold text-lg">
-            Players ({state.players.length}{settings.maxPlayers ? `/${settings.maxPlayers}` : ''})
+            Players ({nonHostPlayers.length}{settings.maxPlayers ? `/${settings.maxPlayers}` : ''})
           </h3>
-          {state.isHost && state.players.length >= 4 && (
+          {state.isHost && nonHostPlayers.length >= 3 && (
             <button onClick={() => setShowRoleAssign(!showRoleAssign)} className="text-xs text-neon-purple hover:underline">
               {showRoleAssign ? 'Hide Roles' : 'Assign Roles'}
             </button>
@@ -177,15 +177,17 @@ export default function LobbyPage() {
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">
                   {player.displayName}
-                  {player.isHost && <span className="ml-2 text-xs text-neon-amber">👑 Host</span>}
+                  {player.isHost && <span className="ml-2 text-xs text-neon-amber">👁 God</span>}
                   {player.id === state.playerId && <span className="ml-2 text-xs text-neon-cyan">(You)</span>}
                 </p>
                 <p className="text-xs text-text-muted">
-                  {!player.isConnected ? '⚠️ Disconnected' : player.isReady ? '✅ Ready' : '⏳ Not ready'}
+                  {player.isHost
+                    ? '🎭 Moderator'
+                    : !player.isConnected ? '⚠️ Disconnected' : player.isReady ? '✅ Ready' : '⏳ Not ready'}
                 </p>
               </div>
-              {/* Role assignment dropdown (host only) */}
-              {showRoleAssign && state.isHost && (
+              {/* Role assignment dropdown (host only, not for God) */}
+              {showRoleAssign && state.isHost && !player.isHost && (
                 <select
                   value={roleAssignments[player.id] || 'civilian'}
                   onChange={(e) => assignRole(player.id, e.target.value)}
@@ -213,17 +215,17 @@ export default function LobbyPage() {
           </button>
         )}
         {state.isHost && showRoleAssign && (
-          <button onClick={startGame} className="btn-primary w-full text-lg py-4 glow-purple" disabled={state.players.length < 4}>
+          <button onClick={startGame} className="btn-primary w-full text-lg py-4 glow-purple" disabled={nonHostPlayers.length < 3}>
             🎮 Start Game
           </button>
         )}
-        {state.isHost && !showRoleAssign && state.players.length >= 4 && (
+        {state.isHost && !showRoleAssign && nonHostPlayers.length >= 3 && (
           <button onClick={() => setShowRoleAssign(true)} className="btn-primary w-full">
             Assign Roles to Start
           </button>
         )}
-        {state.players.length < 4 && (
-          <p className="text-center text-text-muted text-sm">Need at least 4 players to start</p>
+        {nonHostPlayers.length < 3 && (
+          <p className="text-center text-text-muted text-sm">Need at least 3 players (+ God) to start</p>
         )}
       </div>
     </div>

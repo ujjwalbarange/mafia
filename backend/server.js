@@ -26,9 +26,26 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
+// Build allowed origins list dynamically
+const allowedOrigins = [
+  CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:3000'
+].filter(Boolean);
+
+// CORS origin checker — allows configured URLs + any *.vercel.app domain
+function corsOriginCheck(origin, callback) {
+  // Allow no-origin requests (curl, mobile apps, server-to-server)
+  if (!origin) return callback(null, true);
+  if (allowedOrigins.includes(origin)) return callback(null, true);
+  // Allow any Vercel deployment (preview + production)
+  if (/\.vercel\.app$/.test(origin)) return callback(null, true);
+  callback(null, false);
+}
+
 /* ========== Middleware ========== */
 app.use(cors({
-  origin: [CLIENT_URL, 'http://localhost:5173', 'http://localhost:3000'],
+  origin: corsOriginCheck,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
@@ -53,7 +70,7 @@ app.get('/api/health', async (req, res) => {
 /* ========== Socket.IO Setup ========== */
 const io = new Server(server, {
   cors: {
-    origin: [CLIENT_URL, 'http://localhost:5173', 'http://localhost:3000'],
+    origin: corsOriginCheck,
     methods: ['GET', 'POST'],
     credentials: true
   },

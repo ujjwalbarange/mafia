@@ -348,9 +348,12 @@ function initSocketHandlers(io) {
         if (!result.success) return callback?.({ success: false, error: result.error });
 
         const state = GameManager.getGameState(socket.roomId);
-        // Notify room about vote count (not who voted for whom unless anonymous is off)
-        const aliveCount = Array.from(state.players.values()).filter(p => p.isAlive).length;
-        const voteCount = Array.from(state.votes.entries()).filter(([vid]) => state.players.get(vid)?.isAlive).length;
+        // Notify room about vote count — exclude God (host) from counts
+        const aliveCount = Array.from(state.players.values()).filter(p => p.isAlive && !p.isHost && p.role !== 'god').length;
+        const voteCount = Array.from(state.votes.entries()).filter(([vid]) => {
+          const v = state.players.get(vid);
+          return v?.isAlive && !v.isHost && v.role !== 'god';
+        }).length;
 
         io.to(socket.roomId).emit('game:vote-update', {
           voteCount,
