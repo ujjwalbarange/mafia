@@ -1,29 +1,39 @@
 /**
  * Timer — countdown timer with circular progress ring
+ * Uses server time offset for synchronized countdown across all devices
  */
 import { useState, useEffect } from 'react';
+import { useSocket } from '../../context/SocketContext';
 
 export default function Timer({ deadline, onExpire, label = 'Time Left' }) {
+  const { getServerNow } = useSocket();
   const [remaining, setRemaining] = useState(0);
   const [total, setTotal] = useState(0);
+  const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     if (!deadline) return;
-    const totalMs = deadline - Date.now();
+    setExpired(false);
+
+    // Use server-synced time for initial calculation
+    const now = getServerNow();
+    const totalMs = deadline - now;
     setTotal(Math.max(totalMs / 1000, 1));
     setRemaining(Math.max(totalMs / 1000, 0));
 
     const interval = setInterval(() => {
-      const left = Math.max((deadline - Date.now()) / 1000, 0);
+      const serverNow = getServerNow();
+      const left = Math.max((deadline - serverNow) / 1000, 0);
       setRemaining(left);
-      if (left <= 0) {
+      if (left <= 0 && !expired) {
+        setExpired(true);
         clearInterval(interval);
         onExpire?.();
       }
     }, 100);
 
     return () => clearInterval(interval);
-  }, [deadline, onExpire]);
+  }, [deadline, getServerNow]);
 
   const minutes = Math.floor(remaining / 60);
   const seconds = Math.floor(remaining % 60);

@@ -200,6 +200,17 @@ export function GameProvider({ children }) {
       dispatch({ type: 'SET_GAME_OVER', payload: data });
     });
 
+    // Kicked by host — reset to landing
+    socket.on('room:kicked', () => {
+      localStorage.removeItem('mafia_session');
+      dispatch({ type: 'RESET' });
+      dispatch({ type: 'SET_NOTIFICATION', payload: 'You were removed from the room' });
+    });
+
+    socket.on('room:player-kicked', ({ displayName }) => {
+      dispatch({ type: 'SET_NOTIFICATION', payload: `${displayName} was kicked` });
+    });
+
     return () => {
       socket.off('room:players');
       socket.off('room:player-joined');
@@ -214,6 +225,8 @@ export function GameProvider({ children }) {
       socket.off('game:vote-update');
       socket.off('game:vote-result');
       socket.off('game:over');
+      socket.off('room:kicked');
+      socket.off('room:player-kicked');
     };
   }, [socket]);
 

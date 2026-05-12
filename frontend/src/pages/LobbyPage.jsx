@@ -50,6 +50,11 @@ export default function LobbyPage() {
     setRoleAssignments(prev => ({ ...prev, [playerId]: role }));
   };
 
+  const kickPlayer = async (playerId) => {
+    const res = await emit('player:kick', { targetId: playerId });
+    if (!res?.success) setError(res?.error || 'Failed to kick player');
+  };
+
   // Non-host players only (host is God, not a player)
   const nonHostPlayers = state.players.filter(p => !p.isHost);
 
@@ -198,6 +203,16 @@ export default function LobbyPage() {
                   {settings.enableDoctor && <option value="doctor">🏥 Doctor</option>}
                   {settings.enablePolice && <option value="police">🔍 Police</option>}
                 </select>
+              )}
+              {/* Kick button (host only, not for self) */}
+              {state.isHost && !player.isHost && (
+                <button
+                  onClick={() => kickPlayer(player.id)}
+                  className="text-neon-red hover:text-red-400 text-lg px-2 transition-colors"
+                  title={`Kick ${player.displayName}`}
+                >
+                  ✕
+                </button>
               )}
             </motion.div>
           ))}

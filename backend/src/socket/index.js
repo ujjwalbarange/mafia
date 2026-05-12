@@ -13,6 +13,12 @@ function initSocketHandlers(io) {
   io.on('connection', (socket) => {
     console.log(`[Socket] Connected: ${socket.id}`);
 
+    /* ========== TIME SYNC ========== */
+    // Clients ping this to calculate their clock offset for synchronized timers
+    socket.on('server:ping', (_, callback) => {
+      callback?.({ serverTime: Date.now() });
+    });
+
     /* ========== ROOM EVENTS ========== */
 
     // Create a new room
@@ -171,6 +177,47 @@ function initSocketHandlers(io) {
         callback?.({ success: true, isReady: player.isReady });
       } catch (err) {
         console.error('[player:ready]', err);
+        callback?.({ success: false });
+      }
+    });
+
+    // Kick a player (host only)
+    socket.on('player:kick', async ({ targetId }, callback) => {
+      try {
+        const state = GameManager.getGameState(socket.roomId);
+        if (!state) return callback?.({ success: false, error: 'Room not found' });
+        const host = state.players.get(socket.playerId);
+        if (!host?.isHost) return callback?.({ success: false, error: 'Not host' });
+
+        const target = state.players.get(targetId);
+        if (!target) return callback?.({ success: false, error: 'Player not found' });
+        if (target.isHost) return callback?.({ success: false, error: 'Cannot kick yourself' });
+
+        // Force disconnect the kicked player's socket
+        if (target.socketId) {
+          const targetSocket = io.sockets.sockets.get(target.socketId);
+          if (targetSocket) {
+            targetSocket.emit('room:kicked');
+            targetSocket.leave(socket.roomId);
+            targetSocket.roomId = null;
+            targetSocket.playerId = null;
+          }
+        }
+
+        // Remove from in-memory state
+        state.players.delete(targetId);
+        // Clear any disconnect timer
+        const timer = state.disconnectTimers.get(targetId);
+        if (timer) { clearTimeout(timer); state.disconnectTimers.delete(targetId); }
+
+        // Remove from DB
+        await PlayerModel.delete(targetId);
+
+        io.to(socket.roomId).emit('room:players', GameManager.getPublicPlayers(socket.roomId));
+        io.to(socket.roomId).emit('room:player-kicked', { displayName: target.displayName });
+        callback?.({ success: true });
+      } catch (err) {
+        console.error('[player:kick]', err);
         callback?.({ success: false });
       }
     });
