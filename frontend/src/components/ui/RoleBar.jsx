@@ -1,9 +1,11 @@
 /**
  * RoleBar — Persistent role display at the top of game screens (like Scribbl's word bar)
  * 
- * Shows "Your Role: ●●●●●" when hidden
- * Eye toggle opens a PIN popup → reveals role for a few seconds
- * Manual "Hide" button to re-hide before auto-hide
+ * Behavior:
+ * - Auto-reveals role when first assigned (role_assignment phase)
+ * - Once the player clicks "Hide", all future reveals require PIN entry
+ * - Auto-hides when a new phase starts (night, day, voting) in case player forgot
+ * - God always sees their role without PIN
  */
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,8 +20,6 @@ const ROLE_DISPLAY = {
   police: { label: 'Police', emoji: '🔍', color: 'text-blue-400', bg: 'from-blue-500/20 to-indigo-500/20' }
 };
 
-const AUTO_HIDE_DELAY = 5000; // 5 seconds
-
 export default function RoleBar() {
   const { emit } = useSocket();
   const { state } = useGame();
@@ -28,22 +28,41 @@ export default function RoleBar() {
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState('');
   const [verifiedRole, setVerifiedRole] = useState(null);
-  const autoHideTimer = useRef(null);
   const pinInputRef = useRef(null);
+
+  // Once set to true, every future reveal requires PIN
+  const pinLocked = useRef(false);
+
+  // Track the previous phase to detect transitions
+  const prevPhase = useRef(state.phase);
 
   // Use the role we already know from context, or verifiedRole from PIN check
   const displayRole = state.myRole || verifiedRole;
   const roleInfo = ROLE_DISPLAY[displayRole] || null;
-
-  // God always sees their role
   const isGod = state.isHost;
 
-  // Clear timer on unmount
+  // === EFFECT 1: Auto-reveal on role_assignment (first time only) ===
   useEffect(() => {
-    return () => {
-      if (autoHideTimer.current) clearTimeout(autoHideTimer.current);
-    };
-  }, []);
+    if (state.phase === 'role_assignment' && displayRole && !pinLocked.current && !isGod) {
+      setRevealed(true);
+    }
+  }, [state.phase, displayRole, isGod]);
+
+  // === EFFECT 2: Auto-hide when phase changes (night/day/voting starts) ===
+  useEffect(() => {
+    if (state.phase !== prevPhase.current) {
+      prevPhase.current = state.phase;
+
+      // Auto-hide on any phase transition (except staying on role_assignment)
+      if (revealed && state.phase !== 'role_assignment') {
+        setRevealed(false);
+        // If role was showing and phase changed, lock to PIN from now on
+        if (displayRole) {
+          pinLocked.current = true;
+        }
+      }
+    }
+  }, [state.phase, revealed, displayRole]);
 
   // Focus PIN input when popup opens
   useEffect(() => {
@@ -52,17 +71,30 @@ export default function RoleBar() {
     }
   }, [showPinPopup]);
 
+  // === Handlers ===
+
   const handleReveal = () => {
-    if (isGod || state.myRole) {
-      // Already know the role, just show it
+    if (isGod) {
+      // God always sees role, no PIN needed
       setRevealed(true);
-      startAutoHide();
+      return;
+    }
+
+    if (!pinLocked.current && displayRole) {
+      // First reveal (before ever hidden) — show directly
+      setRevealed(true);
     } else {
-      // Need PIN verification
+      // Locked — need PIN
       setShowPinPopup(true);
       setPin('');
       setPinError('');
     }
+  };
+
+  const handleHide = () => {
+    setRevealed(false);
+    // Lock: from now on, PIN is required to reveal again
+    pinLocked.current = true;
   };
 
   const handlePinSubmit = async (e) => {
@@ -74,27 +106,10 @@ export default function RoleBar() {
       setShowPinPopup(false);
       setRevealed(true);
       setPin('');
-      startAutoHide();
     } else {
       setPinError(res?.error || 'Wrong PIN');
       setPin('');
     }
-  };
-
-  const handleHide = () => {
-    setRevealed(false);
-    if (autoHideTimer.current) {
-      clearTimeout(autoHideTimer.current);
-      autoHideTimer.current = null;
-    }
-  };
-
-  const startAutoHide = () => {
-    if (autoHideTimer.current) clearTimeout(autoHideTimer.current);
-    autoHideTimer.current = setTimeout(() => {
-      setRevealed(false);
-      autoHideTimer.current = null;
-    }, AUTO_HIDE_DELAY);
   };
 
   // Don't show the bar if no role assigned yet and not in a game phase
@@ -156,9 +171,9 @@ export default function RoleBar() {
             <button
               onClick={handleReveal}
               className="text-lg px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-              title="Reveal your role"
+              title={pinLocked.current ? 'Enter PIN to reveal' : 'Reveal your role'}
             >
-              👁
+              {pinLocked.current ? '🔐' : '👁'}
             </button>
           )}
         </div>
