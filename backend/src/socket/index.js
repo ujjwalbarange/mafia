@@ -152,6 +152,9 @@ function initSocketHandlers(io) {
         socket.playerId = player.id;
         socket.roomId = room.id;
 
+        // Cancel any scheduled room cleanup since someone reconnected
+        GameManager.cancelRoomCleanup(room.id);
+
         const view = GameManager.getPlayerView(room.id, player.id);
 
         callback({ success: true, gameState: view });
@@ -503,10 +506,11 @@ function initSocketHandlers(io) {
           io.to(socket.roomId).emit('room:players', GameManager.getPublicPlayers(socket.roomId));
         }
 
-        // If all disconnected, cleanup
+        // If all disconnected, schedule DB cleanup
         const anyConnected = Array.from(currentState.players.values()).some(cp => cp.isConnected);
         if (!anyConnected) {
-          GameManager.removeGameState(socket.roomId);
+          // Schedule full DB purge after ROOM_CLEANUP_TIMEOUT
+          GameManager.scheduleRoomCleanup(socket.roomId);
         }
       }, RECONNECT_TIMEOUT);
 

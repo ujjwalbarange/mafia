@@ -65,5 +65,11 @@ module.exports = {
   ROOM_CODE_CHARS: 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', // no confusing chars
   ROOM_CODE_LENGTH: parseInt(process.env.ROOM_CODE_LENGTH || '6', 10),
   PIN_LENGTH: parseInt(process.env.PIN_LENGTH || '4', 10),
-  RECONNECT_TIMEOUT: parseInt(process.env.RECONNECT_TIMEOUT_MS || '30000', 10)
+  RECONNECT_TIMEOUT: parseInt(process.env.RECONNECT_TIMEOUT_MS || '30000', 10),
+
+  // How long to wait after all players disconnect before purging room data from DB (default 30 min)
+  ROOM_CLEANUP_TIMEOUT: parseInt(process.env.ROOM_CLEANUP_TIMEOUT_MS || '1800000', 10),
+
+  // How often to sweep for stale rooms (default every 10 min)
+  STALE_ROOM_SWEEP_INTERVAL: parseInt(process.env.STALE_ROOM_SWEEP_INTERVAL_MS || '600000', 10)
 };

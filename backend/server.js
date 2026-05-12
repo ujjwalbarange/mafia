@@ -19,6 +19,7 @@ const { initSocketHandlers } = require('./src/socket');
 const roomRoutes = require('./src/routes/roomRoutes');
 const playerRoutes = require('./src/routes/playerRoutes');
 const gameRoutes = require('./src/routes/gameRoutes');
+const GameManager = require('./src/game/GameManager');
 
 const app = express();
 const server = http.createServer(app);
@@ -101,7 +102,11 @@ server.listen(PORT, () => {
   console.log(`\n🎭 Mafia Game Server running on port ${PORT}`);
   console.log(`📡 Client URL: ${CLIENT_URL}`);
   console.log(`🔌 Socket.IO ready`);
-  console.log(`🏥 Health check: http://localhost:${PORT}/api/health\n`);
+  console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
+
+  // Start periodic stale room cleanup
+  GameManager.startStaleRoomSweep();
+  console.log(`🧹 Room cleanup enabled (${process.env.ROOM_CLEANUP_TIMEOUT_MS || '1800000'}ms timeout)\n`);
 });
 
 // Graceful shutdown

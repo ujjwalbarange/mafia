@@ -14,10 +14,13 @@ const GameSessionModel = require('../models/GameSession');
 const VoteModel = require('../models/Vote');
 const RoundLogModel = require('../models/RoundLog');
 const { generatePin } = require('../utils/helpers');
-const { PHASES, ROLES, ROOM_STATUS, NIGHT_STEPS, EVENT_TYPES, DEFAULT_SETTINGS, MIN_PLAYERS } = require('../config/constants');
+const { PHASES, ROLES, ROOM_STATUS, NIGHT_STEPS, EVENT_TYPES, DEFAULT_SETTINGS, MIN_PLAYERS, ROOM_CLEANUP_TIMEOUT, STALE_ROOM_SWEEP_INTERVAL } = require('../config/constants');
 
 // In-memory store for active game states
 const activeGames = new Map();
+
+// Timers for scheduled room DB purges (roomId -> setTimeout ref)
+const cleanupTimers = new Map();
 
 /**
  * Get or create an in-memory game state for a room
@@ -719,6 +722,79 @@ async function resetForNewGame(roomId) {
   return true;
 }
 
+/**
+ * Purge all database records for a room
+ * The CASCADE constraints on the schema will delete players, sessions, votes, and logs
+ */
+async function purgeRoomData(roomId) {
+  try {
+    console.log(`[Cleanup] Purging DB data for room ${roomId}`);
+    await RoomModel.delete(roomId);
+    console.log(`[Cleanup] Room ${roomId} purged from database`);
+  } catch (err) {
+    console.error(`[Cleanup] Failed to purge room ${roomId}:`, err.message);
+  }
+}
+
+/**
+ * Schedule a room cleanup after ROOM_CLEANUP_TIMEOUT
+ * Called when all players disconnect from a room
+ */
+function scheduleRoomCleanup(roomId) {
+  // Cancel any existing timer
+  cancelRoomCleanup(roomId);
+
+  const timeoutMs = ROOM_CLEANUP_TIMEOUT;
+  console.log(`[Cleanup] Room ${roomId} — all players disconnected. Purging DB in ${timeoutMs / 1000}s`);
+
+  const timer = setTimeout(async () => {
+    cleanupTimers.delete(roomId);
+    // Double-check no one reconnected
+    const state = activeGames.get(roomId);
+    if (state) {
+      const anyConnected = Array.from(state.players.values()).some(p => p.isConnected);
+      if (anyConnected) {
+        console.log(`[Cleanup] Room ${roomId} — players reconnected, skipping purge`);
+        return;
+      }
+    }
+    // Remove in-memory state and purge DB
+    removeGameState(roomId);
+    await purgeRoomData(roomId);
+  }, timeoutMs);
+
+  cleanupTimers.set(roomId, timer);
+}
+
+/**
+ * Cancel a scheduled room cleanup (e.g. when a player reconnects)
+ */
+function cancelRoomCleanup(roomId) {
+  const existing = cleanupTimers.get(roomId);
+  if (existing) {
+    clearTimeout(existing);
+    cleanupTimers.delete(roomId);
+    console.log(`[Cleanup] Room ${roomId} — cleanup cancelled (player reconnected)`);
+  }
+}
+
+/**
+ * Start a periodic sweep that purges stale rooms from the DB
+ * Catches rooms that were abandoned without proper disconnect events
+ */
+function startStaleRoomSweep() {
+  const intervalMs = STALE_ROOM_SWEEP_INTERVAL;
+  console.log(`[Cleanup] Stale room sweep every ${intervalMs / 1000}s`);
+
+  setInterval(async () => {
+    try {
+      await RoomModel.cleanup();
+    } catch (err) {
+      console.error('[Cleanup] Sweep error:', err.message);
+    }
+  }, intervalMs);
+}
+
 module.exports = {
   getGameState,
   createGameState,
@@ -738,5 +814,9 @@ module.exports = {
   checkWinCondition,
   endGame,
   getGameSummary,
-  resetForNewGame
+  resetForNewGame,
+  purgeRoomData,
+  scheduleRoomCleanup,
+  cancelRoomCleanup,
+  startStaleRoomSweep
 };
