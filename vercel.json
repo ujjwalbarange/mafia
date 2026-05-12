@@ -1,16 +1,4 @@
 {
-  "buildCommand": "cd frontend && npm install && npm run build",
-  "outputDirectory": "frontend/dist",
-  "installCommand": "cd frontend && npm install",
-  "framework": null,
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
-}
-{
   "experimentalServices": {
     "frontend": {
       "entrypoint": "frontend",
@@ -21,5 +9,15 @@
       "entrypoint": "backend",
       "routePrefix": "/_/backend"
     }
-  }
+  },
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "cd frontend && npm install",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
