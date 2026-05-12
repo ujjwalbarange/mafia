@@ -10,7 +10,7 @@ import PlayerAvatar from '../components/ui/PlayerAvatar';
 const ROLE_LABELS = {
   god: { label: 'God', emoji: '👁', color: 'text-neon-amber' },
   civilian: { label: 'Civilian', emoji: '👤', color: 'text-text-secondary' },
-  impostor: { label: 'Impostor', emoji: '🐺', color: 'text-neon-red' },
+  impostor: { label: 'Mafia', emoji: '🐺', color: 'text-neon-red' },
   doctor: { label: 'Doctor', emoji: '🏥', color: 'text-neon-green' },
   police: { label: 'Police', emoji: '🔍', color: 'text-neon-blue' }
 };
@@ -114,7 +114,7 @@ export default function LobbyPage() {
                 className="input-field w-20 text-center text-sm" min={10} max={120} />
             </div>
             <div className="flex justify-between items-center">
-              <label className="text-sm text-text-secondary">Impostors</label>
+              <label className="text-sm text-text-secondary">Mafia Members</label>
               <input type="number" value={settings.numImpostors} onChange={e => setSettings(s => ({...s, numImpostors: +e.target.value}))}
                 className="input-field w-20 text-center text-sm" min={1} max={4} />
             </div>
@@ -199,7 +199,7 @@ export default function LobbyPage() {
                   className="input-field w-28 text-xs py-2"
                 >
                   <option value="civilian">👤 Civilian</option>
-                  <option value="impostor">🐺 Impostor</option>
+                  <option value="impostor">🐺 Mafia</option>
                   {settings.enableDoctor && <option value="doctor">🏥 Doctor</option>}
                   {settings.enablePolice && <option value="police">🔍 Police</option>}
                 </select>

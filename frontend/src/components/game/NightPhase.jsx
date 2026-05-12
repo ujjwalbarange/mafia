@@ -94,7 +94,7 @@ export default function NightPhase() {
           <p className="text-sm">
             Investigation: <strong>{policeResult.playerName}</strong> is{' '}
             <span className={policeResult.isImpostor ? 'text-neon-red font-bold' : 'text-neon-green'}>
-              {policeResult.isImpostor ? '🐺 an Impostor!' : '✅ Not an Impostor'}
+              {policeResult.isImpostor ? '🐺 Mafia!' : '✅ Not Mafia'}
             </span>
           </p>
         </motion.div>

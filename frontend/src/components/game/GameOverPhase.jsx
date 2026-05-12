@@ -7,7 +7,8 @@ import { useSocket } from '../../context/SocketContext';
 import { useGame } from '../../context/GameContext';
 import PlayerAvatar from '../ui/PlayerAvatar';
 
-const ROLE_EMOJI = { civilian: '👤', impostor: '🐺', doctor: '🏥', police: '🔍' };
+const ROLE_EMOJI = { civilian: '👤', impostor: '🐺', doctor: '🏥', police: '🔍', god: '👁' };
+const ROLE_DISPLAY = { civilian: 'Civilian', impostor: 'Mafia', doctor: 'Doctor', police: 'Police', god: 'God' };
 
 export default function GameOverPhase() {
   const { emit } = useSocket();
@@ -47,7 +48,7 @@ export default function GameOverPhase() {
           {isImpostorWin ? '🐺' : '🎉'}
         </motion.div>
         <h1 className={`font-display text-4xl font-bold ${isImpostorWin ? 'text-neon-red text-glow-red' : 'text-neon-green'}`}>
-          {isImpostorWin ? 'Impostors Win!' : 'Civilians Win!'}
+          {isImpostorWin ? 'Mafia Wins!' : 'Civilians Win!'}
         </h1>
         <p className="text-text-secondary mt-2">
           {isImpostorWin ? 'The mafia has taken over...' : 'Justice prevails!'}
@@ -72,8 +73,8 @@ export default function GameOverPhase() {
                 <p className="text-xs text-text-muted">{!player.isAlive ? '💀 Dead' : '✅ Survived'}</p>
               </div>
               {player.role && (
-                <span className={`text-sm font-semibold ${player.role === 'impostor' ? 'text-neon-red' : 'text-text-secondary'}`}>
-                  {ROLE_EMOJI[player.role]} {player.role}
+                <span className={`text-sm font-semibold ${player.role === 'impostor' ? 'text-neon-red' : player.role === 'god' ? 'text-neon-amber' : 'text-text-secondary'}`}>
+                  {ROLE_EMOJI[player.role]} {ROLE_DISPLAY[player.role] || player.role}
                 </span>
               )}
             </motion.div>

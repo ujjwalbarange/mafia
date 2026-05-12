@@ -7,8 +7,8 @@ import { useSocket } from '../../context/SocketContext';
 import { useGame } from '../../context/GameContext';
 
 const ROLE_INFO = {
-  civilian: { label: 'Civilian', emoji: '👤', color: 'from-blue-500 to-cyan-500', desc: 'Find and vote out the impostors!' },
-  impostor: { label: 'Impostor', emoji: '🐺', color: 'from-red-600 to-pink-600', desc: 'Eliminate players without getting caught!' },
+  civilian: { label: 'Civilian', emoji: '👤', color: 'from-blue-500 to-cyan-500', desc: 'Find and vote out the Mafia!' },
+  impostor: { label: 'Mafia', emoji: '🐺', color: 'from-red-600 to-pink-600', desc: 'Eliminate players without getting caught!' },
   doctor: { label: 'Doctor', emoji: '🏥', color: 'from-green-500 to-emerald-500', desc: 'Save one player each night from the mafia!' },
   police: { label: 'Police', emoji: '🔍', color: 'from-blue-600 to-indigo-600', desc: 'Investigate one player each night!' }
 };

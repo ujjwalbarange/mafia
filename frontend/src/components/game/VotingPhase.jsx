@@ -65,7 +65,7 @@ export default function VotingPhase() {
               </h2>
               {result.showRole && (
                 <p className={`text-lg font-semibold ${result.wasImpostor ? 'text-neon-red' : 'text-neon-green'}`}>
-                  They were {result.wasImpostor ? '🐺 an Impostor!' : '👤 not an Impostor.'}
+                  They were {result.wasImpostor ? '🐺 Mafia!' : '👤 not Mafia.'}
                 </p>
               )}
             </>
