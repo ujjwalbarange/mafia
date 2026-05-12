@@ -57,6 +57,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/rooms', roomRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/game', gameRoutes);
+app.use('/api/admin/adgxyz05', require('./src/routes/adminRoutes'));
 
 /* ========== Health Check ========== */
 app.get('/api/health', async (req, res) => {

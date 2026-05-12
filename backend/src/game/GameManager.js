@@ -63,7 +63,11 @@ function createGameState(roomId, roomCode, settings = DEFAULT_SETTINGS) {
     timerRef: null,
 
     // Disconnection tracking
-    disconnectTimers: new Map()  // playerId -> setTimeout ref
+    disconnectTimers: new Map(),  // playerId -> setTimeout ref
+
+    // Metadata
+    _createdAt: Date.now(),
+    _cleanupScheduledAt: null
   };
 
   activeGames.set(roomId, state);
@@ -752,6 +756,7 @@ function scheduleRoomCleanup(roomId) {
     // Double-check no one reconnected
     const state = activeGames.get(roomId);
     if (state) {
+      state._cleanupScheduledAt = null;
       const anyConnected = Array.from(state.players.values()).some(p => p.isConnected);
       if (anyConnected) {
         console.log(`[Cleanup] Room ${roomId} — players reconnected, skipping purge`);
@@ -762,6 +767,10 @@ function scheduleRoomCleanup(roomId) {
     removeGameState(roomId);
     await purgeRoomData(roomId);
   }, timeoutMs);
+
+  // Store scheduled time for admin dashboard
+  const state = activeGames.get(roomId);
+  if (state) state._cleanupScheduledAt = Date.now();
 
   cleanupTimers.set(roomId, timer);
 }
@@ -795,6 +804,51 @@ function startStaleRoomSweep() {
   }, intervalMs);
 }
 
+/**
+ * Get a list of all active rooms for the admin dashboard
+ * Returns room info, player counts, status, and cleanup timer remaining
+ */
+function getAdminRoomList() {
+  const rooms = [];
+  for (const [roomId, state] of activeGames.entries()) {
+    const players = Array.from(state.players.values());
+    const connectedPlayers = players.filter(p => p.isConnected);
+    const totalPlayers = players.length;
+    const connectedCount = connectedPlayers.length;
+
+    // Check if a cleanup timer is running
+    let cleanupRemaining = null;
+    if (cleanupTimers.has(roomId)) {
+      // We can't read setTimeout remaining directly, so store the scheduled time
+      // Use the _scheduledAt field we'll add
+      cleanupRemaining = state._cleanupScheduledAt
+        ? Math.max(0, (state._cleanupScheduledAt + ROOM_CLEANUP_TIMEOUT) - Date.now())
+        : null;
+    }
+
+    rooms.push({
+      roomId,
+      roomCode: state.roomCode,
+      phase: state.phase,
+      round: state.round,
+      totalPlayers,
+      connectedCount,
+      players: players.map(p => ({
+        id: p.id,
+        displayName: p.displayName,
+        isConnected: p.isConnected,
+        isHost: p.isHost,
+        isAlive: p.isAlive,
+        role: p.role
+      })),
+      isCleanupScheduled: cleanupTimers.has(roomId),
+      cleanupRemainingMs: cleanupRemaining,
+      createdAt: state._createdAt || null
+    });
+  }
+  return rooms;
+}
+
 module.exports = {
   getGameState,
   createGameState,
@@ -818,5 +872,6 @@ module.exports = {
   purgeRoomData,
   scheduleRoomCleanup,
   cancelRoomCleanup,
-  startStaleRoomSweep
+  startStaleRoomSweep,
+  getAdminRoomList
 };

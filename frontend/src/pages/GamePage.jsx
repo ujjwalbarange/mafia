@@ -1,7 +1,8 @@
 /**
- * GamePage — renders the correct phase component with a persistent leave button
+ * GamePage — renders the correct phase component with persistent role bar and leave button
  */
 import { useGame } from '../context/GameContext';
+import RoleBar from '../components/ui/RoleBar';
 import RoleRevealPhase from '../components/game/RoleRevealPhase';
 import NightPhase from '../components/game/NightPhase';
 import DayPhase from '../components/game/DayPhase';
@@ -34,11 +35,14 @@ export default function GamePage() {
 
   return (
     <div className="relative">
+      {/* Persistent role bar — like Scribbl's word bar */}
+      {state.phase !== 'game_over' && <RoleBar />}
+
       {/* Persistent leave button — visible on all game phases */}
       {state.phase !== 'game_over' && (
         <button
           onClick={leaveRoom}
-          className="fixed top-4 right-4 z-40 glass px-3 py-2 text-xs text-neon-red hover:glow-red transition-all rounded-lg"
+          className="fixed top-14 right-4 z-40 glass px-3 py-2 text-xs text-neon-red hover:glow-red transition-all rounded-lg"
           title="Leave Room"
         >
           🚪 Leave
