@@ -2,7 +2,7 @@
  * LobbyPage — room waiting area with settings, player list, and role assignment
  */
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSocket } from '../context/SocketContext';
 import { useGame } from '../context/GameContext';
 import PlayerAvatar from '../components/ui/PlayerAvatar';
