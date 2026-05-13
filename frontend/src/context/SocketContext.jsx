@@ -29,10 +29,21 @@ export function SocketProvider({ children }) {
       timeOffset.current = serverTime - Date.now();
     });
 
+    // Auto-reconnect aggressively when app comes to foreground
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        if (socket.disconnected) {
+          socket.connect();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('server:time');
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

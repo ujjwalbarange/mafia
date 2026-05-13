@@ -568,7 +568,7 @@ function initSocketHandlers(io) {
         }, RECONNECT_TIMEOUT);
 
         currentState.disconnectTimers.set(socket.playerId, timer);
-      }, 3000);
+      }, 60000); // 60-second grace period for app switching
 
       if (!state.graceTimers) state.graceTimers = new Map();
       state.graceTimers.set(socket.playerId, graceTimer);
