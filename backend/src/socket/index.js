@@ -567,7 +567,7 @@ function initSocketHandlers(io) {
           }
         }, RECONNECT_TIMEOUT);
 
-        s.disconnectTimers.set(socket.playerId, timer);
+        currentState.disconnectTimers.set(socket.playerId, timer);
       }, 3000);
 
       if (!state.graceTimers) state.graceTimers = new Map();
