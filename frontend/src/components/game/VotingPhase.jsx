@@ -57,7 +57,7 @@ export default function VotingPhase() {
           animate={{ opacity: 1, scale: 1 }}
           className="glass p-8 max-w-sm w-full text-center"
         >
-          {result.eliminatedId ? (
+          {!result.isTie && result.eliminatedId ? (
             <>
               <p className="text-5xl mb-4">⚖️</p>
               <h2 className="font-display text-2xl font-bold text-neon-red mb-2">
@@ -72,8 +72,12 @@ export default function VotingPhase() {
           ) : result.isTie ? (
             <>
               <p className="text-5xl mb-4">⚖️</p>
-              <h2 className="font-display text-2xl font-bold mb-2">It's a Tie!</h2>
-              <p className="text-text-secondary">No one was eliminated.</p>
+              <h2 className="font-display text-2xl font-bold mb-2 text-neon-amber">No one was eliminated!</h2>
+              {result.showRole && (
+                <p className="text-lg font-semibold text-text-muted">
+                  Result: Draw
+                </p>
+              )}
             </>
           ) : (
             <>

@@ -46,8 +46,14 @@ function reducer(state, action) {
       };
     case 'RESTORE_STATE':
       return { ...state, ...action.payload };
-    case 'SET_PLAYERS':
-      return { ...state, players: action.payload };
+    case 'SET_PLAYERS': {
+      const me = action.payload.find(p => p.id === state.playerId);
+      return { 
+        ...state, 
+        players: action.payload,
+        isHost: me ? me.isHost : state.isHost
+      };
+    }
     case 'SET_PHASE':
       // Clear stale data from previous phase on every transition
       return {
