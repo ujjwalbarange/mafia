@@ -143,9 +143,21 @@ function initSocketHandlers(io) {
             memPlayer.isConnected = true;
             memPlayer.socketId = socket.id;
           }
-          // Clear disconnect timer
+
+          // Clear grace timer for short drops
+          if (state.graceTimers) {
+            const gTimer = state.graceTimers.get(player.id);
+            if (gTimer) { clearTimeout(gTimer); state.graceTimers.delete(player.id); }
+          }
+
+          // Clear long disconnect timer
           const timer = state.disconnectTimers.get(player.id);
           if (timer) { clearTimeout(timer); state.disconnectTimers.delete(player.id); }
+
+          // If God reconnected during a game, unpause
+          if (memPlayer && memPlayer.isHost && state.phase !== PHASES.LOBBY && state.phase !== PHASES.GAME_OVER) {
+            io.to(room.id).emit('game:pause', { isPaused: false });
+          }
         }
 
         socket.join(room.id);
@@ -239,6 +251,40 @@ function initSocketHandlers(io) {
         callback?.({ success: true });
       } catch (err) {
         console.error('[game:settings]', err);
+        callback?.({ success: false });
+      }
+    });
+
+    // Transfer God role to another player (lobby only)
+    socket.on('player:transfer-host', async ({ targetId }, callback) => {
+      try {
+        const state = GameManager.getGameState(socket.roomId);
+        if (!state) return callback?.({ success: false, error: 'Room not found' });
+        const host = state.players.get(socket.playerId);
+        if (!host?.isHost) return callback?.({ success: false, error: 'Not host' });
+
+        const target = state.players.get(targetId);
+        if (!target) return callback?.({ success: false, error: 'Player not found' });
+        if (target.isHost) return callback?.({ success: false, error: 'Already host' });
+
+        // Update memory
+        host.isHost = false;
+        target.isHost = true;
+
+        // Update DB
+        await PlayerModel.update(socket.playerId, { is_host: 0 });
+        await PlayerModel.update(target.id, { is_host: 1 });
+        await RoomModel.update(socket.roomId, { host_player_id: target.id });
+
+        // Notify room and the new host specifically
+        io.to(socket.roomId).emit('room:players', GameManager.getPublicPlayers(socket.roomId));
+        if (target.socketId) {
+          io.to(target.socketId).emit('room:host-assigned');
+        }
+        
+        callback?.({ success: true });
+      } catch (err) {
+        console.error('[player:transfer-host]', err);
         callback?.({ success: false });
       }
     });
@@ -480,41 +526,52 @@ function initSocketHandlers(io) {
       const player = state.players.get(socket.playerId);
       if (!player) return;
 
-      player.isConnected = false;
-      await PlayerModel.update(socket.playerId, { is_connected: 0 });
-      io.to(socket.roomId).emit('room:players', GameManager.getPublicPlayers(socket.roomId));
-      io.to(socket.roomId).emit('room:player-disconnected', { displayName: player.displayName });
+      // Temporarily clear socket ID
+      player.socketId = null;
 
-      // Set a timeout — if they don't reconnect, handle host reassignment
-      const timer = setTimeout(async () => {
+      // 1. Short Grace Period (3 seconds) to prevent flickering on quick app switches
+      const graceTimer = setTimeout(async () => {
+        if (state.graceTimers) state.graceTimers.delete(socket.playerId);
+        
         const currentState = GameManager.getGameState(socket.roomId);
         if (!currentState) return;
         const p = currentState.players.get(socket.playerId);
-        if (!p || p.isConnected) return;
+        if (!p) return;
+        
+        // If they got a new socketId, they reconnected
+        if (p.socketId !== null) return;
 
-        // If host disconnected, reassign
-        if (p.isHost) {
-          p.isHost = false;
-          await PlayerModel.update(socket.playerId, { is_host: 0 });
-          const connected = Array.from(currentState.players.values()).find(cp => cp.isConnected && cp.id !== socket.playerId);
-          if (connected) {
-            connected.isHost = true;
-            await PlayerModel.update(connected.id, { is_host: 1 });
-            await RoomModel.update(socket.roomId, { host_player_id: connected.id });
-            io.to(connected.socketId).emit('room:host-assigned');
+        // They are officially disconnected
+        p.isConnected = false;
+        await PlayerModel.update(socket.playerId, { is_connected: 0 });
+        io.to(socket.roomId).emit('room:players', GameManager.getPublicPlayers(socket.roomId));
+        io.to(socket.roomId).emit('room:player-disconnected', { displayName: p.displayName });
+
+        // If God disconnected and game is not in lobby/game over, pause it
+        if (p.isHost && currentState.phase !== PHASES.LOBBY && currentState.phase !== PHASES.GAME_OVER) {
+          io.to(socket.roomId).emit('game:pause', { isPaused: true, reason: 'Waiting for God to reconnect...' });
+        }
+
+        // 2. Long Reconnect Timeout (30 seconds)
+        // If they don't reconnect in 30s, and NO ONE is connected, we start room cleanup
+        const timer = setTimeout(async () => {
+          const s = GameManager.getGameState(socket.roomId);
+          if (!s) return;
+          const p2 = s.players.get(socket.playerId);
+          if (!p2 || p2.isConnected) return;
+
+          // Check if anyone is still connected
+          const anyConnected = Array.from(s.players.values()).some(cp => cp.isConnected);
+          if (!anyConnected) {
+            GameManager.scheduleRoomCleanup(socket.roomId);
           }
-          io.to(socket.roomId).emit('room:players', GameManager.getPublicPlayers(socket.roomId));
-        }
+        }, RECONNECT_TIMEOUT);
 
-        // If all disconnected, schedule DB cleanup
-        const anyConnected = Array.from(currentState.players.values()).some(cp => cp.isConnected);
-        if (!anyConnected) {
-          // Schedule full DB purge after ROOM_CLEANUP_TIMEOUT
-          GameManager.scheduleRoomCleanup(socket.roomId);
-        }
-      }, RECONNECT_TIMEOUT);
+        s.disconnectTimers.set(socket.playerId, timer);
+      }, 3000);
 
-      state.disconnectTimers.set(socket.playerId, timer);
+      if (!state.graceTimers) state.graceTimers = new Map();
+      state.graceTimers.set(socket.playerId, graceTimer);
     });
   });
 }

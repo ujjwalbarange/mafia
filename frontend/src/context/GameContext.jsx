@@ -28,7 +28,9 @@ const initialState = {
   gameOverData: null,
   summary: null,
   notification: null,
-  voteUpdate: null
+  voteUpdate: null,
+  isPaused: false,
+  pauseReason: null
 };
 
 function reducer(state, action) {
@@ -77,6 +79,8 @@ function reducer(state, action) {
       return { ...state, notification: action.payload };
     case 'SET_HOST':
       return { ...state, isHost: true };
+    case 'SET_PAUSE':
+      return { ...state, isPaused: action.payload.isPaused, pauseReason: action.payload.reason };
     case 'RESET':
       return { ...initialState };
     default:
@@ -211,6 +215,10 @@ export function GameProvider({ children }) {
       dispatch({ type: 'SET_NOTIFICATION', payload: `${displayName} was kicked` });
     });
 
+    socket.on('game:pause', (data) => {
+      dispatch({ type: 'SET_PAUSE', payload: data });
+    });
+
     return () => {
       socket.off('room:players');
       socket.off('room:player-joined');
@@ -227,6 +235,7 @@ export function GameProvider({ children }) {
       socket.off('game:over');
       socket.off('room:kicked');
       socket.off('room:player-kicked');
+      socket.off('game:pause');
     };
   }, [socket]);
 

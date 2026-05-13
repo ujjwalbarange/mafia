@@ -21,6 +21,7 @@ export default function LobbyPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showRoleAssign, setShowRoleAssign] = useState(false);
   const [roleAssignments, setRoleAssignments] = useState({});
+  const [transferTarget, setTransferTarget] = useState(null);
   const [settings, setSettings] = useState(state.settings || {
     discussionTimer: 120, votingTimer: 30, anonymousVoting: false,
     confirmEjects: true, numImpostors: 1, enableDoctor: true, enablePolice: true, maxPlayers: 10
@@ -53,6 +54,17 @@ export default function LobbyPage() {
   const kickPlayer = async (playerId) => {
     const res = await emit('player:kick', { targetId: playerId });
     if (!res?.success) setError(res?.error || 'Failed to kick player');
+  };
+
+  const transferHost = async () => {
+    if (!transferTarget) return;
+    const res = await emit('player:transfer-host', { targetId: transferTarget.id });
+    if (res?.success) {
+      setTransferTarget(null);
+    } else {
+      setError(res?.error || 'Failed to transfer moderator role');
+      setTransferTarget(null);
+    }
   };
 
   // Non-host players only (host is God, not a player)
@@ -178,7 +190,17 @@ export default function LobbyPage() {
               transition={{ delay: i * 0.05 }}
               className="glass glass-hover p-4 flex items-center gap-4"
             >
-              <PlayerAvatar avatarIndex={player.avatarIndex} isConnected={player.isConnected} showDead={false} />
+              {state.isHost && !player.isHost ? (
+                <button 
+                  onClick={() => setTransferTarget({ id: player.id, name: player.displayName })}
+                  className="hover:scale-105 transition-transform cursor-pointer"
+                  title="Make Moderator"
+                >
+                  <PlayerAvatar avatarIndex={player.avatarIndex} isConnected={player.isConnected} showDead={false} />
+                </button>
+              ) : (
+                <PlayerAvatar avatarIndex={player.avatarIndex} isConnected={player.isConnected} showDead={false} />
+              )}
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">
                   {player.displayName}
@@ -243,6 +265,40 @@ export default function LobbyPage() {
           <p className="text-center text-text-muted text-sm">Need at least 3 players (+ God) to start</p>
         )}
       </div>
+
+      {/* Transfer Host Confirmation Modal */}
+      <AnimatePresence>
+        {transferTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="glass p-6 w-full max-w-sm"
+            >
+              <div className="text-4xl text-center mb-4">👑</div>
+              <h3 className="font-display text-xl font-bold mb-2 text-center text-neon-amber">Transfer Moderator</h3>
+              <p className="text-sm text-text-secondary mb-6 text-center">
+                Are you sure you want to make <strong className="text-white">{transferTarget.name}</strong> the new moderator? You will become a regular player.
+              </p>
+              
+              <div className="flex flex-col gap-3">
+                <button onClick={transferHost} className="btn-primary w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400">
+                  Yes, Transfer
+                </button>
+                <button onClick={() => setTransferTarget(null)} className="glass text-text-muted hover:text-white py-3 rounded-xl transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

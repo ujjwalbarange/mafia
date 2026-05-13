@@ -63,7 +63,8 @@ function createGameState(roomId, roomCode, settings = DEFAULT_SETTINGS) {
     timerRef: null,
 
     // Disconnection tracking
-    disconnectTimers: new Map(),  // playerId -> setTimeout ref
+    disconnectTimers: new Map(),  // playerId -> setTimeout ref (long timeout)
+    graceTimers: new Map(),       // playerId -> setTimeout ref (short grace period)
 
     // Metadata
     _createdAt: Date.now(),
