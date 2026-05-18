@@ -77,8 +77,20 @@ function initSocketHandlers(io) {
           return callback({ success: false, error: 'Name already taken' });
         }
 
+        // Color collision resolution
+        let finalAvatarIndex = avatarIndex || 0;
+        const usedColors = existingPlayers.map(p => p.avatar_index);
+        if (usedColors.includes(finalAvatarIndex)) {
+          for (let i = 0; i < 12; i++) {
+            if (!usedColors.includes(i)) {
+              finalAvatarIndex = i;
+              break;
+            }
+          }
+        }
+
         const player = await PlayerModel.create({
-          roomId: room.id, displayName: name, avatarIndex: avatarIndex || 0, isHost: false
+          roomId: room.id, displayName: name, avatarIndex: finalAvatarIndex, isHost: false
         });
         await PlayerModel.update(player.id, { socket_id: socket.id });
 
@@ -454,7 +466,8 @@ function initSocketHandlers(io) {
         io.to(socket.roomId).emit('game:vote-update', {
           voteCount,
           totalVoters: aliveCount,
-          anonymous: state.settings.anonymousVoting
+          anonymous: state.settings.anonymousVoting,
+          votes: state.settings.anonymousVoting ? [] : Array.from(state.votes.entries()).map(([voterId, targetId]) => ({ voterId, targetId }))
         });
 
         // Auto-resolve if all alive players voted

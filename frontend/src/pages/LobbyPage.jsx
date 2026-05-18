@@ -23,7 +23,7 @@ export default function LobbyPage() {
   const [roleAssignments, setRoleAssignments] = useState({});
   const [transferTarget, setTransferTarget] = useState(null);
   const [settings, setSettings] = useState(state.settings || {
-    discussionTimer: 120, votingTimer: 30, anonymousVoting: false,
+    discussionTimer: 600, votingTimer: 300, anonymousVoting: false,
     confirmEjects: true, numImpostors: 1, enableDoctor: true, enablePolice: true, maxPlayers: 10
   });
   const [error, setError] = useState('');
@@ -118,12 +118,12 @@ export default function LobbyPage() {
             <div className="flex justify-between items-center">
               <label className="text-sm text-text-secondary">Discussion Timer (sec)</label>
               <input type="number" value={settings.discussionTimer} onChange={e => setSettings(s => ({...s, discussionTimer: +e.target.value}))}
-                className="input-field w-20 text-center text-sm" min={30} max={600} />
+                className="input-field w-20 text-center text-sm" min={30} max={1200} />
             </div>
             <div className="flex justify-between items-center">
               <label className="text-sm text-text-secondary">Voting Timer (sec)</label>
               <input type="number" value={settings.votingTimer} onChange={e => setSettings(s => ({...s, votingTimer: +e.target.value}))}
-                className="input-field w-20 text-center text-sm" min={10} max={120} />
+                className="input-field w-20 text-center text-sm" min={10} max={600} />
             </div>
             <div className="flex justify-between items-center">
               <label className="text-sm text-text-secondary">Mafia Members</label>

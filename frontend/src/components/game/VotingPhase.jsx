@@ -113,6 +113,15 @@ export default function VotingPhase() {
     );
   }
 
+  // Get voters for a specific target
+  const getVotersFor = (targetId) => {
+    if (!state.voteUpdate || !state.voteUpdate.votes) return [];
+    return state.voteUpdate.votes
+      .filter(v => v.targetId === targetId)
+      .map(v => state.players.find(p => p.id === v.voterId))
+      .filter(Boolean);
+  };
+
   // Voting interface
   return (
     <div className="min-h-screen flex flex-col px-4 py-6 max-w-lg mx-auto">
@@ -150,61 +159,56 @@ export default function VotingPhase() {
         </div>
       )}
 
-      {/* Player vote grid — only shown for non-God players */}
-      {!isGod && !hasVoted ? (
-        <>
-          <div className="grid grid-cols-2 gap-3 flex-1">
-            {alivePlayers.filter(p => p.id !== state.playerId).map(player => (
-              <motion.button
-                key={player.id}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedTarget(player.id)}
-                className={`glass p-4 flex flex-col items-center gap-2 transition-all
-                  ${selectedTarget === player.id
-                    ? 'border-neon-red glow-red'
-                    : 'glass-hover'}`}
-              >
-                <PlayerAvatar avatarIndex={player.avatarIndex} size="sm" showDead={false} />
-                <p className="text-sm font-medium truncate w-full text-center">{player.displayName}</p>
-              </motion.button>
-            ))}
-          </div>
+      {/* Unified Player Grid (for everyone including God) */}
+      <div className="grid grid-cols-2 gap-3 flex-1">
+        {alivePlayers.filter(p => p.id !== state.playerId || isGod).map(player => {
+          const voters = getVotersFor(player.id);
+          const isSelected = selectedTarget === player.id;
+          const canVote = !isGod && !hasVoted && player.id !== state.playerId;
 
-          <div className="mt-6 space-y-3">
-            <button
-              onClick={handleVote}
-              disabled={!selectedTarget}
-              className="btn-danger w-full"
+          return (
+            <motion.button
+              key={player.id}
+              whileTap={canVote ? { scale: 0.95 } : {}}
+              onClick={() => canVote && setSelectedTarget(player.id)}
+              disabled={!canVote}
+              className={`glass p-4 flex flex-col items-center gap-2 transition-all relative
+                ${isSelected ? 'border-neon-red glow-red' : canVote ? 'glass-hover' : 'opacity-90'}
+                ${canVote ? 'cursor-pointer' : 'cursor-default'}`}
             >
-              🗳️ Lock Vote
-            </button>
-            <button onClick={handleSkipVote} className="btn-ghost w-full text-sm">
-              Skip Vote
-            </button>
-          </div>
-        </>
+              <PlayerAvatar avatarIndex={player.avatarIndex} size="sm" showDead={false} />
+              <p className="text-sm font-medium truncate w-full text-center">{player.displayName}</p>
+              
+              {/* Live Votes */}
+              {voters.length > 0 && (
+                <div className="absolute -bottom-2 -right-2 flex flex-wrap-reverse gap-1 justify-end p-1 max-w-[80px]">
+                  {voters.map(voter => (
+                    <div key={voter.id} className="w-5 h-5 rounded-full bg-surface border border-deep overflow-hidden" title={`Voted by ${voter.displayName}`}>
+                      <PlayerAvatar avatarIndex={voter.avatarIndex} size="xs" showDead={false} isConnected={voter.isConnected} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.button>
+          );
+        })}
+      </div>
+
+      {/* Action Buttons */}
+      {!isGod && !hasVoted ? (
+        <div className="mt-6 space-y-3">
+          <button onClick={handleVote} disabled={!selectedTarget} className="btn-danger w-full">
+            🗳️ Lock Vote
+          </button>
+          <button onClick={handleSkipVote} className="btn-ghost w-full text-sm">
+            Skip Vote
+          </button>
+        </div>
       ) : !isGod && hasVoted ? (
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-            <p className="text-5xl mb-4">✅</p>
-            <h3 className="font-display text-xl font-semibold">Vote Locked</h3>
-            <p className="text-text-muted text-sm mt-2">Waiting for other players...</p>
-          </motion.div>
+        <div className="mt-6 text-center text-text-muted">
+          ✅ Vote Locked. Waiting for others...
         </div>
-      ) : (
-        /* God sees the player status grid as observer */
-        <div className="flex-1">
-          <h3 className="font-display font-semibold text-sm text-text-muted uppercase tracking-wider mb-3">Players Voting</h3>
-          <div className="grid grid-cols-3 gap-3">
-            {alivePlayers.map(player => (
-              <div key={player.id} className="glass p-3 flex flex-col items-center gap-2">
-                <PlayerAvatar avatarIndex={player.avatarIndex} size="sm" showDead={false} />
-                <p className="text-xs font-medium truncate w-full text-center">{player.displayName}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      ) : null}
 
       {/* Host force-resolve */}
       {state.isHost && (

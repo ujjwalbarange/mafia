@@ -159,6 +159,25 @@ export default function RoleBar() {
             </AnimatePresence>
           </div>
 
+          {/* Room Code & Return to Lobby for God */}
+          {isGod && (
+            <div className="flex items-center gap-3 mr-2 border-r border-white/10 pr-3">
+              <div className="text-xs font-mono bg-black/40 px-2 py-1 rounded hidden sm:block">
+                Code: <span className="text-neon-cyan font-bold">{state.roomCode}</span>
+              </div>
+              <button 
+                onClick={() => {
+                  if (window.confirm("End the game and return everyone to lobby?")) {
+                    emit('game:play-again');
+                  }
+                }}
+                className="text-xs text-neon-red hover:bg-red-900/30 transition-colors bg-white/5 px-2 py-1 rounded-lg border border-neon-red/30"
+              >
+                End Game
+              </button>
+            </div>
+          )}
+
           {/* Eye toggle / Hide button */}
           {revealed ? (
             <button

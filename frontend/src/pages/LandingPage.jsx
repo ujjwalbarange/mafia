@@ -5,15 +5,15 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSocket } from '../context/SocketContext';
 import { useGame } from '../context/GameContext';
-import { AVATARS } from '../components/ui/PlayerAvatar';
+import { AMONG_US_COLORS } from '../components/ui/PlayerAvatar';
 
 export default function LandingPage() {
   const { emit, isConnected } = useSocket();
   const { dispatch } = useGame();
   const [view, setView] = useState('home'); // home | create | join
-  const [name, setName] = useState('');
+  const [name, setName] = useState(localStorage.getItem('mafia_name') || '');
   const [roomCode, setRoomCode] = useState('');
-  const [avatarIndex, setAvatarIndex] = useState(0);
+  const [avatarIndex, setAvatarIndex] = useState(parseInt(localStorage.getItem('mafia_color') || '0', 10));
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,6 +24,8 @@ export default function LandingPage() {
     const res = await emit('room:create', { displayName: name.trim(), avatarIndex });
     setLoading(false);
     if (res?.success) {
+      localStorage.setItem('mafia_name', name.trim());
+      localStorage.setItem('mafia_color', avatarIndex);
       dispatch({ type: 'SET_ROOM', payload: res });
     } else {
       setError(res?.error || 'Failed to create room');
@@ -38,6 +40,8 @@ export default function LandingPage() {
     const res = await emit('room:join', { roomCode: roomCode.trim().toUpperCase(), displayName: name.trim(), avatarIndex });
     setLoading(false);
     if (res?.success) {
+      localStorage.setItem('mafia_name', name.trim());
+      localStorage.setItem('mafia_color', avatarIndex);
       dispatch({ type: 'SET_ROOM', payload: res });
     } else {
       setError(res?.error || 'Failed to join room');
@@ -135,17 +139,17 @@ export default function LandingPage() {
           <div className="glass p-4 w-full">
             <p className="text-xs text-text-muted uppercase tracking-wider mb-3">Choose Avatar</p>
             <div className="flex flex-wrap gap-2 justify-center">
-              {AVATARS.map((emoji, i) => (
+              {AMONG_US_COLORS.map((color, i) => (
                 <button
                   key={i}
                   onClick={() => setAvatarIndex(i)}
-                  className={`w-12 h-12 rounded-xl text-2xl flex items-center justify-center transition-all
+                  style={{ backgroundColor: color.hex }}
+                  className={`w-10 h-10 rounded-full border-2 transition-all shadow-inner
                     ${avatarIndex === i
-                      ? 'bg-neon-purple/20 border-2 border-neon-purple glow-purple scale-110'
-                      : 'bg-surface border border-border hover:border-border-glow'}`}
-                >
-                  {emoji}
-                </button>
+                      ? 'border-white scale-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]'
+                      : 'border-transparent opacity-80 hover:opacity-100 hover:scale-105'}`}
+                  title={color.id}
+                />
               ))}
             </div>
           </div>

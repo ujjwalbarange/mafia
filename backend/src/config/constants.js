@@ -40,8 +40,8 @@ module.exports = {
 
   // Default game settings
   DEFAULT_SETTINGS: {
-    discussionTimer: 120,   // seconds
-    votingTimer: 30,        // seconds
+    discussionTimer: 600,   // seconds
+    votingTimer: 300,       // seconds
     anonymousVoting: false,
     confirmEjects: true,
     numImpostors: 1,
