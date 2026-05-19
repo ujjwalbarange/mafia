@@ -112,58 +112,93 @@ export default function LobbyPage() {
 
       {/* Settings Panel (host only) */}
       {showSettings && state.isHost && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="glass p-5 mb-6">
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="glass p-5 mb-6 overflow-hidden">
           <h3 className="font-display font-semibold mb-4 text-neon-cyan">⚙️ Game Settings</h3>
-          <div className="space-y-4">
+          <div className="space-y-5">
+            
             <div className="flex justify-between items-center">
               <label className="text-sm text-text-secondary">Discussion Timer (sec)</label>
-              <input type="number" value={settings.discussionTimer} onChange={e => setSettings(s => ({...s, discussionTimer: +e.target.value}))}
-                className="input-field w-20 text-center text-sm" min={30} max={1200} />
+              <div className="flex items-center gap-2 bg-black/40 rounded-lg p-1 border border-white/5">
+                <button onClick={() => setSettings(s => ({...s, discussionTimer: Math.max(30, s.discussionTimer - 30)}))} className="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 transition-colors text-lg text-text-muted hover:text-white">−</button>
+                <span className="w-10 text-center font-mono text-sm">{settings.discussionTimer}</span>
+                <button onClick={() => setSettings(s => ({...s, discussionTimer: Math.min(1200, s.discussionTimer + 30)}))} className="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 transition-colors text-lg text-text-muted hover:text-white">+</button>
+              </div>
             </div>
+
             <div className="flex justify-between items-center">
               <label className="text-sm text-text-secondary">Voting Timer (sec)</label>
-              <input type="number" value={settings.votingTimer} onChange={e => setSettings(s => ({...s, votingTimer: +e.target.value}))}
-                className="input-field w-20 text-center text-sm" min={10} max={600} />
+              <div className="flex items-center gap-2 bg-black/40 rounded-lg p-1 border border-white/5">
+                <button onClick={() => setSettings(s => ({...s, votingTimer: Math.max(10, s.votingTimer - 10)}))} className="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 transition-colors text-lg text-text-muted hover:text-white">−</button>
+                <span className="w-10 text-center font-mono text-sm">{settings.votingTimer}</span>
+                <button onClick={() => setSettings(s => ({...s, votingTimer: Math.min(600, s.votingTimer + 10)}))} className="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 transition-colors text-lg text-text-muted hover:text-white">+</button>
+              </div>
             </div>
+
             <div className="flex justify-between items-center">
-              <label className="text-sm text-text-secondary">Mafia Members</label>
-              <input type="number" value={settings.numImpostors} onChange={e => setSettings(s => ({...s, numImpostors: +e.target.value}))}
-                className="input-field w-20 text-center text-sm" min={1} max={4} />
+              <div className="flex flex-col">
+                <label className="text-sm text-text-secondary">Mafia Members</label>
+                <span className="text-[10px] text-text-muted">Max {Math.min(3, Math.max(1, Math.floor(nonHostPlayers.length / 3)))} based on players</span>
+              </div>
+              <div className="flex items-center gap-2 bg-black/40 rounded-lg p-1 border border-white/5">
+                <button 
+                  onClick={() => setSettings(s => ({...s, numImpostors: Math.max(1, s.numImpostors - 1)}))} 
+                  className="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 transition-colors text-lg text-text-muted hover:text-white"
+                >−</button>
+                <span className="w-8 text-center font-mono text-sm text-neon-red font-bold">{settings.numImpostors}</span>
+                <button 
+                  onClick={() => {
+                    const dynamicMax = nonHostPlayers.length >= 9 ? 3 : nonHostPlayers.length >= 6 ? 2 : 1;
+                    setSettings(s => ({...s, numImpostors: Math.min(dynamicMax, s.numImpostors + 1)}));
+                  }} 
+                  className="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 transition-colors text-lg text-text-muted hover:text-white"
+                >+</button>
+              </div>
             </div>
+
             <div className="flex justify-between items-center">
               <label className="text-sm text-text-secondary">Anonymous Voting</label>
               <button onClick={() => setSettings(s => ({...s, anonymousVoting: !s.anonymousVoting}))}
-                className={`w-12 h-6 rounded-full transition-colors ${settings.anonymousVoting ? 'bg-neon-purple' : 'bg-surface'}`}>
+                className={`w-12 h-6 rounded-full transition-colors ${settings.anonymousVoting ? 'bg-neon-purple' : 'bg-surface border border-white/10'}`}>
                 <div className={`w-5 h-5 rounded-full bg-white transition-transform ${settings.anonymousVoting ? 'translate-x-6' : 'translate-x-0.5'}`} />
               </button>
             </div>
+
             <div className="flex justify-between items-center">
-              <label className="text-sm text-text-secondary">Confirm Ejects</label>
+              <label className="text-sm text-text-secondary">Confirm Ejects (Reveal Role)</label>
               <button onClick={() => setSettings(s => ({...s, confirmEjects: !s.confirmEjects}))}
-                className={`w-12 h-6 rounded-full transition-colors ${settings.confirmEjects ? 'bg-neon-purple' : 'bg-surface'}`}>
+                className={`w-12 h-6 rounded-full transition-colors ${settings.confirmEjects ? 'bg-neon-purple' : 'bg-surface border border-white/10'}`}>
                 <div className={`w-5 h-5 rounded-full bg-white transition-transform ${settings.confirmEjects ? 'translate-x-6' : 'translate-x-0.5'}`} />
               </button>
             </div>
+
             <div className="flex justify-between items-center">
               <label className="text-sm text-text-secondary">Enable Doctor</label>
               <button onClick={() => setSettings(s => ({...s, enableDoctor: !s.enableDoctor}))}
-                className={`w-12 h-6 rounded-full transition-colors ${settings.enableDoctor ? 'bg-neon-green' : 'bg-surface'}`}>
+                className={`w-12 h-6 rounded-full transition-colors ${settings.enableDoctor ? 'bg-neon-green' : 'bg-surface border border-white/10'}`}>
                 <div className={`w-5 h-5 rounded-full bg-white transition-transform ${settings.enableDoctor ? 'translate-x-6' : 'translate-x-0.5'}`} />
               </button>
             </div>
+
             <div className="flex justify-between items-center">
               <label className="text-sm text-text-secondary">Enable Police</label>
               <button onClick={() => setSettings(s => ({...s, enablePolice: !s.enablePolice}))}
-                className={`w-12 h-6 rounded-full transition-colors ${settings.enablePolice ? 'bg-neon-blue' : 'bg-surface'}`}>
+                className={`w-12 h-6 rounded-full transition-colors ${settings.enablePolice ? 'bg-neon-blue' : 'bg-surface border border-white/10'}`}>
                 <div className={`w-5 h-5 rounded-full bg-white transition-transform ${settings.enablePolice ? 'translate-x-6' : 'translate-x-0.5'}`} />
               </button>
             </div>
+
             <div className="flex justify-between items-center">
               <label className="text-sm text-text-secondary">Max Players</label>
-              <input type="number" value={settings.maxPlayers} onChange={e => setSettings(s => ({...s, maxPlayers: +e.target.value}))}
-                className="input-field w-20 text-center text-sm" min={4} max={15} />
+              <div className="flex items-center gap-2 bg-black/40 rounded-lg p-1 border border-white/5">
+                <button onClick={() => setSettings(s => ({...s, maxPlayers: Math.max(4, s.maxPlayers - 1)}))} className="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 transition-colors text-lg text-text-muted hover:text-white">−</button>
+                <span className="w-8 text-center font-mono text-sm">{settings.maxPlayers}</span>
+                <button onClick={() => setSettings(s => ({...s, maxPlayers: Math.min(15, s.maxPlayers + 1)}))} className="w-8 h-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 transition-colors text-lg text-text-muted hover:text-white">+</button>
+              </div>
             </div>
-            <button onClick={saveSettings} className="btn-primary w-full">Save Settings</button>
+
+            <button onClick={saveSettings} className="btn-primary w-full mt-2 py-3 bg-gradient-to-r from-neon-purple to-neon-pink">
+              Save Settings
+            </button>
           </div>
         </motion.div>
       )}

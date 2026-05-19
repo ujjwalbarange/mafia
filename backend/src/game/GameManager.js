@@ -196,8 +196,18 @@ function validateRoleAssignment(roomId, assignments) {
   if ((roleCounts[ROLES.IMPOSTOR] || 0) < 1) {
     return { valid: false, error: 'At least 1 impostor required' };
   }
-  if ((roleCounts[ROLES.IMPOSTOR] || 0) > state.settings.numImpostors) {
-    return { valid: false, error: `Max ${state.settings.numImpostors} impostors allowed` };
+  
+  // Calculate dynamic limit based on player count
+  let maxImpostors = 1;
+  const nonHostCount = players.length - (host ? 1 : 0);
+  if (nonHostCount >= 9) maxImpostors = 3;
+  else if (nonHostCount >= 6) maxImpostors = 2;
+  
+  // Allow the setting to be lower than the dynamic limit, but never higher
+  const finalLimit = Math.min(state.settings.numImpostors || 1, maxImpostors);
+
+  if ((roleCounts[ROLES.IMPOSTOR] || 0) > finalLimit) {
+    return { valid: false, error: `Max ${finalLimit} impostors allowed for ${nonHostCount} players` };
   }
 
   // Doctor check

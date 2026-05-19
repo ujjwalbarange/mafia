@@ -159,11 +159,14 @@ export default function RoleBar() {
             </AnimatePresence>
           </div>
 
-          {/* Room Code & Return to Lobby for God */}
+          {/* Room Code, PIN & Return to Lobby for God */}
           {isGod && (
             <div className="flex items-center gap-3 mr-2 border-r border-white/10 pr-3">
               <div className="text-xs font-mono bg-black/40 px-2 py-1 rounded hidden sm:block">
                 Code: <span className="text-neon-cyan font-bold">{state.roomCode}</span>
+              </div>
+              <div className="text-xs font-mono bg-neon-purple/20 border border-neon-purple/40 px-2 py-1 rounded">
+                PIN: <span className="text-white font-bold">{state.pinCode || '----'}</span>
               </div>
               <button 
                 onClick={() => {
@@ -178,22 +181,24 @@ export default function RoleBar() {
             </div>
           )}
 
-          {/* Eye toggle / Hide button */}
-          {revealed ? (
-            <button
-              onClick={handleHide}
-              className="text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10"
-            >
-              Hide
-            </button>
-          ) : (
-            <button
-              onClick={handleReveal}
-              className="text-lg px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-              title={pinLocked.current ? 'Enter PIN to reveal' : 'Reveal your role'}
-            >
-              {pinLocked.current ? '🔐' : '👁'}
-            </button>
+          {/* Eye toggle / Hide button (Not needed for God) */}
+          {!isGod && (
+            revealed ? (
+              <button
+                onClick={handleHide}
+                className="text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10"
+              >
+                Hide
+              </button>
+            ) : (
+              <button
+                onClick={handleReveal}
+                className="text-lg px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                title={pinLocked.current ? 'Enter PIN to reveal' : 'Reveal your role'}
+              >
+                {pinLocked.current ? '🔐' : '👁'}
+              </button>
+            )
           )}
         </div>
       </div>

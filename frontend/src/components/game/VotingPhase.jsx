@@ -21,12 +21,42 @@ export default function VotingPhase() {
   const isDead = !me?.isAlive;
   const isGod = state.isHost;
 
+  const [suspense, setSuspense] = useState(true);
+  const [msgIndex, setMsgIndex] = useState(0);
+
   // Show vote result when received
   useEffect(() => {
-    if (state.voteResult) setShowResult(true);
+    if (state.voteResult) {
+      setShowResult(true);
+      setSuspense(true);
+      setMsgIndex(Math.floor(Math.random() * 3));
+      const t = setTimeout(() => setSuspense(false), 3500);
+      return () => clearTimeout(t);
+    }
   }, [state.voteResult]);
 
+  // Messages
+  const getEliminatedMsg = (name) => [
+    `${name} was eliminated.`,
+    `The town voted out ${name}.`,
+    `Goodbye, ${name}.`
+  ][msgIndex];
+  const getTieMsg = () => [
+    "Voting ended in a tie.",
+    "The town couldn't decide.",
+    "No player was eliminated."
+  ][msgIndex];
+  const getSkipMsg = () => [
+    "No one was eliminated.",
+    "The town decided to skip.",
+    "Voting was skipped."
+  ][msgIndex];
+
   const handleVote = async () => {
+    if (isDead) {
+      setHasVoted(true);
+      return;
+    }
     const res = await emit('game:vote', { targetId: selectedTarget });
     if (res?.success) {
       setHasVoted(true);
@@ -34,6 +64,11 @@ export default function VotingPhase() {
   };
 
   const handleSkipVote = async () => {
+    if (isDead) {
+      setHasVoted(true);
+      setSelectedTarget(null);
+      return;
+    }
     const res = await emit('game:vote', { targetId: null });
     if (res?.success) {
       setHasVoted(true);
@@ -50,63 +85,84 @@ export default function VotingPhase() {
   // Vote result screen
   if (showResult && state.voteResult) {
     const result = state.voteResult;
+
+    if (suspense) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-black/90">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-6">
+            <div className="w-12 h-12 border-4 border-neon-purple/30 border-t-neon-purple rounded-full animate-spin" />
+            <h2 className="font-display text-2xl font-semibold tracking-widest uppercase text-white animate-pulse">Tallying Votes...</h2>
+          </motion.div>
+        </div>
+      );
+    }
+
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4">
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 transition-colors duration-1000 bg-black/80">
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="glass p-8 max-w-sm w-full text-center"
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="glass p-10 max-w-sm w-full text-center border-t-4 border-t-white/20 shadow-2xl"
         >
           {!result.isTie && result.eliminatedId ? (
             <>
-              <p className="text-5xl mb-4">⚖️</p>
-              <h2 className="font-display text-2xl font-bold text-neon-red mb-2">
-                {result.eliminatedName} was eliminated!
+              <h2 className="font-display text-3xl font-bold text-white mb-2 leading-tight">
+                {getEliminatedMsg(result.eliminatedName)}
               </h2>
               {result.showRole && (
-                <p className={`text-lg font-semibold ${result.wasImpostor ? 'text-neon-red' : 'text-neon-green'}`}>
-                  They were {result.wasImpostor ? '🐺 Mafia!' : '👤 not Mafia.'}
-                </p>
+                <motion.p 
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }} 
+                  transition={{ delay: 1 }} 
+                  className={`mt-4 text-xl tracking-wide ${result.wasImpostor ? 'text-neon-red font-bold' : 'text-neon-cyan'}`}
+                >
+                  {result.eliminatedName} was {result.wasImpostor ? 'an Impostor.' : 'not an Impostor.'}
+                </motion.p>
               )}
             </>
           ) : result.isTie ? (
             <>
-              <p className="text-5xl mb-4">⚖️</p>
-              <h2 className="font-display text-2xl font-bold mb-2 text-neon-amber">No one was eliminated!</h2>
+              <h2 className="font-display text-3xl font-bold mb-2 text-white">{getTieMsg()}</h2>
               {result.showRole && (
-                <p className="text-lg font-semibold text-text-muted">
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="mt-4 text-xl tracking-wide text-text-muted">
                   Result: Draw
-                </p>
+                </motion.p>
               )}
             </>
           ) : (
             <>
-              <p className="text-5xl mb-4">🤝</p>
-              <h2 className="font-display text-2xl font-bold mb-2">Vote Skipped</h2>
-              <p className="text-text-secondary">No one was eliminated.</p>
+              <h2 className="font-display text-3xl font-bold mb-2 text-white">{getSkipMsg()}</h2>
             </>
           )}
 
           {/* Vote breakdown */}
           {result.voteResults && !state.settings?.anonymousVoting && (
-            <div className="mt-6 text-left">
-              <p className="text-xs text-text-muted uppercase tracking-wider mb-2">Vote Breakdown</p>
-              <div className="space-y-1">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }} className="mt-8 text-left border-t border-white/10 pt-4">
+              <p className="text-xs text-text-muted uppercase tracking-widest mb-3 text-center">Vote Breakdown</p>
+              <div className="space-y-2">
                 {Object.entries(result.voteResults).map(([voterId, vote]) => (
-                  <div key={voterId} className={`flex justify-between text-xs ${vote.isGhost ? 'opacity-40' : ''}`}>
-                    <span>{vote.voterName} {vote.isGhost ? '👻' : ''}</span>
-                    <span className="text-text-muted">→ {vote.targetName}</span>
+                  <div key={voterId} className={`flex justify-between items-center text-sm ${vote.isGhost ? 'opacity-30' : ''}`}>
+                    <span className="font-medium text-white/80">{vote.voterName} {vote.isGhost ? '👻' : ''}</span>
+                    <span className="text-text-muted text-xs mx-2">voted</span>
+                    <span className="font-medium text-white/80">{vote.targetName}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Continue button (host) */}
           {state.isHost && !result.gameOver && (
-            <button onClick={() => emit('game:start-night')} className="btn-primary w-full mt-6">
-              🌙 Continue to Night
-            </button>
+            <motion.button 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              transition={{ delay: 2 }} 
+              onClick={() => emit('game:start-night')} 
+              className="btn-primary w-full mt-8"
+            >
+              Proceed
+            </motion.button>
           )}
         </motion.div>
       </div>
@@ -118,7 +174,12 @@ export default function VotingPhase() {
     if (!state.voteUpdate || !state.voteUpdate.votes) return [];
     return state.voteUpdate.votes
       .filter(v => v.targetId === targetId)
-      .map(v => state.players.find(p => p.id === v.voterId))
+      .map(v => {
+        if (state.voteUpdate.anonymous) {
+          return { id: v.voterId, isAnonymous: true };
+        }
+        return state.players.find(p => p.id === v.voterId);
+      })
       .filter(Boolean);
   };
 
@@ -160,11 +221,13 @@ export default function VotingPhase() {
       )}
 
       {/* Unified Player Grid (for everyone including God) */}
-      <div className="grid grid-cols-2 gap-3 flex-1">
-        {alivePlayers.filter(p => p.id !== state.playerId || isGod).map(player => {
+      <div className="grid grid-cols-3 gap-3 flex-1">
+        {state.players.filter(p => !p.isHost).map(player => {
           const voters = getVotersFor(player.id);
           const isSelected = selectedTarget === player.id;
-          const canVote = !isGod && !hasVoted && player.id !== state.playerId;
+          const isOwn = player.id === state.playerId;
+          const canVote = !isGod && !hasVoted && !isOwn && player.isAlive;
+          const isFaded = isOwn || !player.isAlive;
 
           return (
             <motion.button
@@ -172,19 +235,28 @@ export default function VotingPhase() {
               whileTap={canVote ? { scale: 0.95 } : {}}
               onClick={() => canVote && setSelectedTarget(player.id)}
               disabled={!canVote}
-              className={`glass p-4 flex flex-col items-center gap-2 transition-all relative
-                ${isSelected ? 'border-neon-red glow-red' : canVote ? 'glass-hover' : 'opacity-90'}
+              className={`glass p-3 flex flex-col items-center gap-1 transition-all relative
+                ${isSelected ? 'border-neon-red glow-red' : canVote ? 'glass-hover' : ''}
+                ${isFaded ? 'opacity-40 grayscale' : ''}
                 ${canVote ? 'cursor-pointer' : 'cursor-default'}`}
             >
               <PlayerAvatar avatarIndex={player.avatarIndex} size="sm" showDead={false} />
-              <p className="text-sm font-medium truncate w-full text-center">{player.displayName}</p>
+              <p className="text-xs font-medium truncate w-full text-center mt-1">{player.displayName}</p>
+              
+              {voters.length > 0 && (
+                <p className="text-[10px] text-neon-red font-bold">{voters.length} {voters.length === 1 ? 'vote' : 'votes'}</p>
+              )}
               
               {/* Live Votes */}
               {voters.length > 0 && (
-                <div className="absolute -bottom-2 -right-2 flex flex-wrap-reverse gap-1 justify-end p-1 max-w-[80px]">
+                <div className="absolute -bottom-1 -right-1 flex flex-wrap-reverse gap-1 justify-end p-1 max-w-[60px]">
                   {voters.map(voter => (
-                    <div key={voter.id} className="w-5 h-5 rounded-full bg-surface border border-deep overflow-hidden" title={`Voted by ${voter.displayName}`}>
-                      <PlayerAvatar avatarIndex={voter.avatarIndex} size="xs" showDead={false} isConnected={voter.isConnected} />
+                    <div key={voter.id} className="w-4 h-4 rounded-full bg-surface border border-deep overflow-hidden shadow-md" title={voter.isAnonymous ? 'Anonymous' : `Voted by ${voter.displayName}`}>
+                      {voter.isAnonymous ? (
+                         <div className="w-full h-full bg-gray-500 rounded-full" />
+                      ) : (
+                         <PlayerAvatar avatarIndex={voter.avatarIndex} size="xs" showDead={false} isConnected={voter.isConnected} />
+                      )}
                     </div>
                   ))}
                 </div>

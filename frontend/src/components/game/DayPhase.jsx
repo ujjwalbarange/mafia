@@ -45,27 +45,24 @@ export default function DayPhase() {
       {/* Night result announcement */}
       {showKilled && killedInfo && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className={`glass p-5 text-center mb-6 ${killedInfo.wasSaved ? 'border-neon-green' : killedInfo.id ? 'border-neon-red' : ''}`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-6 text-center mb-6"
         >
           {killedInfo.wasSaved ? (
-            <>
-              <p className="text-3xl mb-2">🏥</p>
-              <p className="font-display font-semibold text-neon-green">No one died tonight!</p>
-              <p className="text-sm text-text-muted mt-1">The doctor saved someone...</p>
-            </>
+            <h2 className="font-display text-2xl font-bold tracking-wide text-white">
+              The Mafia failed to eliminate anyone.
+            </h2>
           ) : killedInfo.id ? (
             <>
-              <p className="text-3xl mb-2">💀</p>
-              <p className="font-display font-semibold text-neon-red">{killedInfo.name} was killed!</p>
-              <p className="text-sm text-text-muted mt-1">The mafia struck in the night...</p>
+              <h2 className="font-display text-3xl font-bold tracking-wide text-white mb-2">
+                {killedInfo.name} was found dead.
+              </h2>
             </>
           ) : (
-            <>
-              <p className="text-3xl mb-2">🌅</p>
-              <p className="font-display font-semibold">No one died tonight</p>
-            </>
+            <h2 className="font-display text-2xl font-bold tracking-wide text-white">
+              No one died tonight.
+            </h2>
           )}
         </motion.div>
       )}

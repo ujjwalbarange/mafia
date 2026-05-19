@@ -467,7 +467,10 @@ function initSocketHandlers(io) {
           voteCount,
           totalVoters: aliveCount,
           anonymous: state.settings.anonymousVoting,
-          votes: state.settings.anonymousVoting ? [] : Array.from(state.votes.entries()).map(([voterId, targetId]) => ({ voterId, targetId }))
+          votes: Array.from(state.votes.entries()).map(([voterId, targetId], idx) => ({
+            voterId: state.settings.anonymousVoting ? `anon_${idx}` : voterId,
+            targetId
+          }))
         });
 
         // Auto-resolve if all alive players voted
