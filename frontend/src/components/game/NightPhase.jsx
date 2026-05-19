@@ -23,7 +23,8 @@ export default function NightPhase() {
 
   const nightStep = state.nightStep || 'mafia_wake';
   const stepInfo = STEP_INFO[nightStep] || STEP_INFO.mafia_wake;
-  const alivePlayers = state.players.filter(p => p.isAlive);
+  // Exclude God (host) from the target list
+  const alivePlayers = state.players.filter(p => p.isAlive && !p.isHost);
 
   const handleAction = async () => {
     if (nightStep === 'resolve') {

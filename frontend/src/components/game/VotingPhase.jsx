@@ -249,9 +249,9 @@ export default function VotingPhase() {
               
               {/* Live Votes */}
               {voters.length > 0 && (
-                <div className="absolute -bottom-1 -right-1 flex flex-wrap-reverse gap-1 justify-end p-1 max-w-[60px]">
+                <div className="absolute bottom-2 right-2 flex flex-wrap-reverse gap-1 justify-end max-w-[60px]">
                   {voters.map(voter => (
-                    <div key={voter.id} className="w-4 h-4 rounded-full bg-surface border border-deep overflow-hidden shadow-md" title={voter.isAnonymous ? 'Anonymous' : `Voted by ${voter.displayName}`}>
+                    <div key={voter.id} className="w-5 h-5 rounded-full bg-surface border border-deep overflow-hidden shadow-md" title={voter.isAnonymous ? 'Anonymous' : `Voted by ${voter.displayName}`}>
                       {voter.isAnonymous ? (
                          <div className="w-full h-full bg-gray-500 rounded-full" />
                       ) : (
@@ -266,28 +266,74 @@ export default function VotingPhase() {
         })}
       </div>
 
-      {/* Action Buttons */}
-      {!isGod && !hasVoted ? (
-        <div className="mt-6 space-y-3">
-          <button onClick={handleVote} disabled={!selectedTarget} className="btn-danger w-full">
-            🗳️ Lock Vote
-          </button>
-          <button onClick={handleSkipVote} className="btn-ghost w-full text-sm">
-            Skip Vote
-          </button>
-        </div>
-      ) : !isGod && hasVoted ? (
-        <div className="mt-6 text-center text-text-muted">
-          ✅ Vote Locked. Waiting for others...
-        </div>
-      ) : null}
+      {/* Action Buttons & Skip Info */}
+      {(() => {
+        const skipVoters = getVotersFor(null);
+        
+        return (
+          <div className="mt-6 space-y-3">
+            
+            {/* Active voting controls */}
+            {!isGod && !hasVoted && (
+              <>
+                <button onClick={handleVote} disabled={!selectedTarget} className="btn-danger w-full">
+                  🗳️ Lock Vote
+                </button>
+                <button onClick={handleSkipVote} className="btn-ghost w-full text-sm py-3 relative flex items-center justify-center transition-transform active:scale-95">
+                  <span>Skip Vote</span>
+                  {/* Show skipped avatars directly on the button */}
+                  {skipVoters.length > 0 && (
+                    <div className="absolute right-4 flex gap-1 items-center">
+                      {skipVoters.map(voter => (
+                        <div key={voter.id} className="w-5 h-5 rounded-full bg-surface border border-deep overflow-hidden shadow-md" title={voter.isAnonymous ? 'Anonymous' : `Skipped by ${voter.displayName}`}>
+                          {voter.isAnonymous ? (
+                             <div className="w-full h-full bg-gray-500 rounded-full" />
+                          ) : (
+                             <PlayerAvatar avatarIndex={voter.avatarIndex} size="xs" showDead={false} isConnected={voter.isConnected} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </button>
+              </>
+            )}
 
-      {/* Host force-resolve */}
-      {state.isHost && (
-        <button onClick={() => emit('game:resolve-voting')} className="btn-ghost w-full mt-4 text-sm">
-          ⚡ Force End Voting
-        </button>
-      )}
+            {/* Waiting state */}
+            {!isGod && hasVoted && (
+              <div className="text-center text-text-muted mb-2">
+                ✅ Vote Locked. Waiting for others...
+              </div>
+            )}
+
+            {/* Display skipped voters for God or players who already voted */}
+            {(isGod || hasVoted) && skipVoters.length > 0 && (
+              <div className="glass p-3 flex items-center justify-between text-sm">
+                <span className="text-text-muted">Skipped:</span>
+                <div className="flex gap-1 items-center">
+                  {skipVoters.map(voter => (
+                    <div key={voter.id} className="w-5 h-5 rounded-full bg-surface border border-deep overflow-hidden shadow-md" title={voter.isAnonymous ? 'Anonymous' : `Skipped by ${voter.displayName}`}>
+                      {voter.isAnonymous ? (
+                         <div className="w-full h-full bg-gray-500 rounded-full" />
+                      ) : (
+                         <PlayerAvatar avatarIndex={voter.avatarIndex} size="xs" showDead={false} isConnected={voter.isConnected} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Host force-resolve */}
+            {state.isHost && (
+              <button onClick={() => emit('game:resolve-voting')} className="btn-ghost w-full text-sm mt-2">
+                ⚡ Force End Voting
+              </button>
+            )}
+
+          </div>
+        );
+      })()}
     </div>
   );
 }

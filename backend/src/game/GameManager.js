@@ -273,6 +273,34 @@ async function applyRoleAssignment(roomId, assignments) {
 }
 
 /**
+ * Helper to check if a specific role is alive
+ */
+function hasAliveRole(state, role) {
+  return Array.from(state.players.values()).some(p => p.isAlive && p.role === role);
+}
+
+/**
+ * Helper to determine the next night step
+ */
+function getNextNightStep(state, currentStep) {
+  if (currentStep === NIGHT_STEPS.MAFIA_WAKE) {
+    if (state.settings.enableDoctor && hasAliveRole(state, ROLES.DOCTOR)) {
+      return NIGHT_STEPS.DOCTOR_WAKE;
+    }
+    currentStep = NIGHT_STEPS.DOCTOR_WAKE; // Skip to next logic
+  }
+  
+  if (currentStep === NIGHT_STEPS.DOCTOR_WAKE) {
+    if (state.settings.enablePolice && hasAliveRole(state, ROLES.POLICE)) {
+      return NIGHT_STEPS.POLICE_WAKE;
+    }
+    currentStep = NIGHT_STEPS.POLICE_WAKE;
+  }
+
+  return NIGHT_STEPS.RESOLVE;
+}
+
+/**
  * Start the night phase
  */
 async function startNightPhase(roomId) {
@@ -289,6 +317,9 @@ async function startNightPhase(roomId) {
     policeResult: null
   };
 
+  // If there's no alive mafia (should trigger game over before this, but just in case), skip?
+  // We don't skip mafia wake, they are the main antagonists.
+  
   await RoomModel.update(roomId, {
     current_phase: PHASES.NIGHT,
     current_round: state.round
@@ -309,23 +340,12 @@ async function processNightAction(roomId, step, targetId) {
   switch (step) {
     case NIGHT_STEPS.MAFIA_WAKE:
       state.nightActions.mafiaTarget = targetId;
-      // Move to next step
-      if (state.settings.enableDoctor) {
-        state.nightActions.step = NIGHT_STEPS.DOCTOR_WAKE;
-      } else if (state.settings.enablePolice) {
-        state.nightActions.step = NIGHT_STEPS.POLICE_WAKE;
-      } else {
-        state.nightActions.step = NIGHT_STEPS.RESOLVE;
-      }
+      state.nightActions.step = getNextNightStep(state, NIGHT_STEPS.MAFIA_WAKE);
       break;
 
     case NIGHT_STEPS.DOCTOR_WAKE:
       state.nightActions.doctorSave = targetId;
-      if (state.settings.enablePolice) {
-        state.nightActions.step = NIGHT_STEPS.POLICE_WAKE;
-      } else {
-        state.nightActions.step = NIGHT_STEPS.RESOLVE;
-      }
+      state.nightActions.step = getNextNightStep(state, NIGHT_STEPS.DOCTOR_WAKE);
       break;
 
     case NIGHT_STEPS.POLICE_WAKE:
